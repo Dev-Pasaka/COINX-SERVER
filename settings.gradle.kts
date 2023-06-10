@@ -1,0 +1,1 @@
+rootProject.name = "online.pasaka.coinx-server"
