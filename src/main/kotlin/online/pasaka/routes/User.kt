@@ -2,14 +2,10 @@ package online.pasaka.routes
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
-import com.example.aitservices.SendOtp
 import com.example.config.JWTConfig
 import com.example.database.CrudOperations
 import com.example.database.DatabaseConnection
-import online.pasaka.model.user.SignIn
 import online.pasaka.model.wallet.crypto.CryptoCoin
-import online.pasaka.model.user.User
-import online.pasaka.model.user.UserData
 import online.pasaka.model.wallet.Wallet
 import com.example.responses.Registration
 import io.ktor.http.*
@@ -21,10 +17,11 @@ import org.litote.kmongo.*
 import org.mindrot.jbcrypt.BCrypt
 import  com.example.responses.*
 import io.ktor.server.auth.*
-import online.pasaka.OtpCodeGenerator.OtpCodeGenerator
-import online.pasaka.model.user.UpdatePassword
+import online.pasaka.model.user.*
+import online.pasaka.model.user.User
 import java.util.*
 import online.pasaka.responses.*
+
 
 fun Route.userRegistration(){
         post("/registerUser") {
@@ -134,7 +131,7 @@ fun Route.getUserData(){
                 } else {
 
                     call.respond(
-                        User(
+                        UserData(
                             message = "Failed to fetch data for user $email",
                             status = false
                         )
@@ -178,12 +175,37 @@ fun Route.signIn(){
     }
 }
 
+fun Route.verifyPhone(){
+    post("/verifyPhoneNumber") {
+        val verifyPhone = call.receive<Phone>()
+        val result = CrudOperations.checkIfPhoneExists(
+            phoneNumber = verifyPhone
+        )
+        println(result)
+        if (result != null) {
+            call.respond(
+                status = HttpStatusCode.OK,
+                message = PhoneQuery(
+                    status = true,
+                    message = "Phone number verification successful"
+                )
+            )
+        } else {
+            call.respond(
+                status = HttpStatusCode.OK,
+                message = PhoneQuery()
+            )
+        }
+    }
+
+
+}
 fun Route.updatePassword(){
     post("/updatePassword"){
         val updatePassword = call.receive<UpdatePassword>()
         val hashedPassword = BCrypt.hashpw(updatePassword.newPassword, BCrypt.gensalt())
         val verifyPhoneNumber = CrudOperations.checkIfPhoneExists(
-                phoneNumber = updatePassword.phoneNumber
+            phoneNumber = updatePassword.phoneNumber
         )
         if (verifyPhoneNumber != null){
             val result = CrudOperations.updatePasswordByPhoneNumber(
@@ -210,10 +232,10 @@ fun Route.updatePassword(){
 
         }else{
             call.respond(
-                    status = HttpStatusCode.OK,
-                    message = UpdatePassword(
-                        message = "Password update failed please confirm your phone number"
-                    )
+                status = HttpStatusCode.OK,
+                message = UpdatePassword(
+                    message = "Password update failed please confirm your phone number"
+                )
             )
         }
     }
