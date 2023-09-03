@@ -15,8 +15,6 @@ import kotlinx.serialization.json.JsonObject
 
 
 class GetAllCryptoPrices {
-
-
     suspend fun getAllCryptoMetadata(): List<Cryptocurrency>?{
         val config = Config.load
         val url = config.property("coinmarketcap_listing_url").getString()
@@ -27,7 +25,6 @@ class GetAllCryptoPrices {
             url {
                 parameter("start", "1")
                 parameter("limit","50")
-                //parameter("coins", "Bitcoin")
                 parameter("convert","KES")
             }
         }
@@ -35,8 +32,6 @@ class GetAllCryptoPrices {
         var cryptoData:List<*>
         val jsonResponseObj = Json.parseToJsonElement(jsonResponseString) as JsonObject
         cryptoData = jsonResponseObj["data"] as List<*>
-
-
 
         val top10CryptoPrices = mutableListOf<Cryptocurrency>()
         for (data in cryptoData){

@@ -9,7 +9,7 @@ import online.pasaka.routes.*
 fun Application.configureRouting() {
     routing {
         get("/") {
-            call.respondText("Hello World!")
+            call.respondText("Hello World! pasaka")
         }
         cryptoPrices()
         cryptoPrice()
@@ -17,8 +17,14 @@ fun Application.configureRouting() {
         getUserPortfolio()
         getUserData()
         signIn()
+        verifyPhone()
         updatePassword()
-        sendOtp()
+        becomeMerchant()
+        merchantPaymentMethod()
+        merchantFloatTopUp()
+        merchantFloatWithdrawal()
+        getMerchantFloatTopUpHistory()
+        getMerchantFloatWithdrawalHistory()
 
     }
 }

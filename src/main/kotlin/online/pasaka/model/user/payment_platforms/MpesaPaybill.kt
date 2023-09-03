@@ -1,4 +1,9 @@
 package online.pasaka.model.user.payment_platforms
 
-object MpesaPaybill {
-}
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class MpesaPaybill(
+    var businessNumber:String = "",
+    var accountNumber:String = "",
+    )

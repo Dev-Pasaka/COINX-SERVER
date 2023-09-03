@@ -3,7 +3,7 @@ package com.example.responses
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class User(
+data class UserDataResponse(
     val message:String = "Failed to fetch userdata",
 
     val status:Boolean = false

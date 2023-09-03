@@ -1,3 +1,23 @@
-package online.pasaka.model.user.merchant
+package online.pasaka.model.merchant
 
-data class CryptoBuyAd()
+import online.pasaka.model.user.Phone
+import org.bson.codecs.pojo.annotations.BsonId
+import org.bson.types.ObjectId
+
+data class CryptoBuyAd(
+    @BsonId()
+    val adId: String = ObjectId().toString(),
+    val merchantEmail:String,
+    val merchantPhone:String,
+    val merchantUsername:String,
+    val ordersCompleted:Int,
+    val cryptoName:String,
+    val cryptoSymbol:String,
+    val totalCryptoAmount:Double,
+    val minBuyAmount:Double,
+    val maxBuyAmount:Double,
+    var cryptoAMount:Double,
+    val ordersCompletedByPercentage:Int,
+    val profitMargin:Double,
+    val price:Double,
+)

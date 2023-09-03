@@ -1,4 +1,4 @@
-package online.pasaka.model.wallet.crypto
+package online.pasaka.model.merchant.wallet.crypto
 
 import kotlinx.serialization.Serializable
 

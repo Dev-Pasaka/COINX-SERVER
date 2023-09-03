@@ -1,3 +1,9 @@
 package online.pasaka.responses
 
-data class PhoneQuery()
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class PhoneQuery(
+    val status: Boolean = false,
+    val message: String = "Phone number not found"
+)
