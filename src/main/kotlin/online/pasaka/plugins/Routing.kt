@@ -4,6 +4,7 @@ package online.pasaka.plugins
 import io.ktor.server.routing.*
 import io.ktor.server.response.*
 import io.ktor.server.application.*
+import online.pasaka.resource.routes.*
 import online.pasaka.routes.*
 
 fun Application.configureRouting() {

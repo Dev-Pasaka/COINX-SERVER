@@ -1,9 +1,8 @@
-package online.pasaka.routes
+package online.pasaka.resource.routes
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.example.config.JWTConfig
-import online.pasaka.database.CrudOperations
 import com.example.database.DatabaseConnection
 import online.pasaka.model.wallet.crypto.CryptoCoin
 import online.pasaka.model.wallet.Wallet
@@ -18,90 +17,100 @@ import org.mindrot.jbcrypt.BCrypt
 import  com.example.responses.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import online.pasaka.model.user.*
 import online.pasaka.model.user.User
+import online.pasaka.model.user.portfolio.LivePortfolio
 import java.util.*
 import online.pasaka.responses.*
+import online.pasaka.service.UserServices
 import online.pasaka.utils.GetCurrentTime
 
 
 fun Route.userRegistration() {
     post("/registerUser") {
+        coroutineScope {
 
-        val db = DatabaseConnection.database
+            val db = DatabaseConnection.database
 
-        val userData = call.receive<UserRegistration>()
+            val userData = call.receive<UserRegistration>()
 
-        val hashedPassword = BCrypt.hashpw(userData.password, BCrypt.gensalt())
+            val hashedPassword = BCrypt.hashpw(userData.password, BCrypt.gensalt())
 
-        val userCollection = db.getCollection<User>("user")
+            val userCollection = db.getCollection<User>("user")
 
-        val doesEmailExists = userCollection.findOne(User::email eq userData.email)
+            val doesEmailExists = async { userCollection.findOne(User::email eq userData.email) }
 
-        if (doesEmailExists == null) {
-            val userRegistration = CrudOperations.createUser(
-                userRegistration = User(
-                    fullName = userData.fullName,
-                    email = userData.email,
-                    phoneNumber = userData.phoneNumber,
-                    username = userData.username,
-                    country = "Kenya",
-                    password = hashedPassword,
-                    createdAt = GetCurrentTime.currentTime()
-                )
-            )
-
-            val walletCreation = CrudOperations.createWallet(
-                Wallet(
-                    walletId = userData.email,
-                    assets = listOf(
-                        CryptoCoin(
-                            symbol = "USDT",
-                            name = "Tether",
-                            amount = 0.0
-                        ),
-                        CryptoCoin(
-                            symbol = "ETH",
-                            name = "Ethereum",
-                            amount = 0.0
-                        ),
-                        CryptoCoin(
-                            symbol = "BTC",
-                            name = "Bitcoin",
-                            amount = 0.0
+            if (doesEmailExists.await() == null) {
+                val userRegistration = async {
+                    UserServices.createUser(
+                        userRegistration = User(
+                            fullName = userData.fullName,
+                            email = userData.email,
+                            phoneNumber = userData.phoneNumber,
+                            username = userData.username,
+                            country = "Kenya",
+                            password = hashedPassword,
+                            createdAt = GetCurrentTime.currentTime()
                         )
                     )
+                }
+
+                val walletCreation = async {
+                    UserServices.createWallet(
+                        Wallet(
+                            walletId = userData.email,
+                            assets = listOf(
+                                CryptoCoin(
+                                    symbol = "USDT",
+                                    name = "Tether",
+                                    amount = 0.0
+                                ),
+                                CryptoCoin(
+                                    symbol = "ETH",
+                                    name = "Ethereum",
+                                    amount = 0.0
+                                ),
+                                CryptoCoin(
+                                    symbol = "BTC",
+                                    name = "Bitcoin",
+                                    amount = 0.0
+                                )
+                            )
+                        )
+                    )
+                }
+
+                if (userRegistration.await() && walletCreation.await()) call.respond(
+
+                    status = HttpStatusCode.OK,
+                    message = Registration(
+                        message = "Registration successful",
+                        isRegistered = true
+                    )
+
                 )
-            )
+                else call.respond(
 
-            if (userRegistration && walletCreation) call.respond(
+                    status = HttpStatusCode.OK,
+                    message = Registration(
+                        message = "Registration Failed",
+                        isRegistered = false
+                    )
 
-                status = HttpStatusCode.OK,
-                message = Registration(
-                    message = "Registration successful",
-                    isRegistered = true
                 )
+            } else {
+                call.respond(
 
-            )
-            else call.respond(
+                    status = HttpStatusCode.OK,
+                    message = Registration(
+                        message = "Email already exits",
+                        isRegistered = false
+                    )
 
-                status = HttpStatusCode.OK,
-                message = Registration(
-                    message = "Registration Failed",
-                    isRegistered = false
                 )
-
-            )
-        } else {
-            call.respond(
-
-                status = HttpStatusCode.OK,
-                message = Registration(
-                    message = "Email already exits",
-                    isRegistered = false
-                )
-
-            )
+            }
         }
     }
 
@@ -110,36 +119,73 @@ fun Route.userRegistration() {
 fun Route.getUserData() {
     authenticate("auth-jwt") {
         get("/getUserData") {
-            val email  = call.principal<JWTPrincipal>()?.payload?.getClaim("email").toString().removeSurrounding("\"")
-            val userdata = try {
-                CrudOperations.getUserData(email)
-            } catch (e: ExceptionInInitializerError) {
-                null
+            coroutineScope {
+
+                val email =
+                    call.principal<JWTPrincipal>()?.payload?.getClaim("email").toString().removeSurrounding("\"")
+                val userdata = async {
+                    try {
+                        UserServices.getUserData(email)
+                    } catch (e: ExceptionInInitializerError) {
+                        null
+                    }
+                }.await()
+
+                if (userdata != null) {
+                    call.respond(
+                        UserData(
+                            id = userdata.id,
+                            fullName = userdata.fullName,
+                            username = userdata.username,
+                            phoneNumber = userdata.phoneNumber,
+                            email = userdata.email,
+                            country = userdata.country
+                        )
+                    )
+
+                } else {
+
+                    call.respond(
+                        UserDataResponse(
+                            message = "Failed to fetch data for user $email",
+                            status = false
+                        )
+                    )
+
+                }
             }
 
-            if (userdata != null) {
+        }
+    }
+}
+fun Route.getUserPortfolio() {
+    authenticate("auth-jwt") {
+        get("/getUserPortfolio") {
+            coroutineScope {
+                val email = call.principal<JWTPrincipal>()?.payload?.getClaim("email").toString().removeSurrounding("\"")
 
-                call.respond(
-                    UserData(
-                        id = userdata.id,
-                        fullName = userdata.fullName,
-                        username = userdata.username,
-                        phoneNumber = userdata.phoneNumber,
-                        email = userdata.email,
-                        country = userdata.country
+                val result: LivePortfolio? = try {
+                    UserServices.liveUserPortfolio(email)
+                } catch (e: Exception) {
+                    null
+                }
+
+                if (result != null){
+                    call.application.environment.log.info("Hello from /api/v1!")
+                    call.respond(result)
+                } else {
+                    call.respond(
+
+                        status = HttpStatusCode.OK,
+                        message = Portfolio(
+                            message = "failed to get user:$email portfolio",
+                            status = false
+                        )
+
                     )
-                )
-
-            } else {
-
-                call.respond(
-                    UserDataResponse(
-                        message = "Failed to fetch data for user $email",
-                        status = false
-                    )
-                )
-
+                }
             }
+
 
         }
     }
@@ -147,57 +193,67 @@ fun Route.getUserData() {
 
 fun Route.signIn() {
     post("/signIn") {
+        coroutineScope {
 
-        val userCredentials = call.receive<SignIn>()
 
-        val userdata = try {
-            CrudOperations.fetchUserCredentials(userCredentials.email)
-        } catch (e: Exception) {
-            null
+            val userCredentials = call.receive<SignIn>()
+
+            val userdata = async {
+                try {
+                    UserServices.fetchUserCredentials(userCredentials.email)
+                } catch (e: Exception) {
+                    null
+                }
+            }.await()
+
+            val hashedPassword = userdata?.password?:""
+
+            val email = userdata?.email?:""
+
+            if (email.isBlank()) call.respond(SignInResponse())
+
+            if (email == userCredentials.email && BCrypt.checkpw(userCredentials.password, hashedPassword)) {
+
+                val token = JWT.create()
+                    .withAudience(JWTConfig.audience)
+                    .withIssuer(JWTConfig.issuer)
+                    .withClaim("email", userCredentials.email)
+                    .withExpiresAt(Date(System.currentTimeMillis() + (60000 * 3600)))
+                    .sign(Algorithm.HMAC256(JWTConfig.secret))
+
+                call.respond(hashMapOf("token" to token))
+
+            } else call.respond(SignInResponse())
         }
-
-        val hashedPassword = userdata?.password
-
-        val email = userdata?.email
-
-        if (email == null) call.respond(SignInResponse())
-
-        if (email == userCredentials.email && BCrypt.checkpw(userCredentials.password, hashedPassword)) {
-
-            val token = JWT.create()
-                .withAudience(JWTConfig.audience)
-                .withIssuer(JWTConfig.issuer)
-                .withClaim("email", userCredentials.email)
-                .withExpiresAt(Date(System.currentTimeMillis() + (60000 * 3600)))
-                .sign(Algorithm.HMAC256(JWTConfig.secret))
-
-            call.respond(hashMapOf("token" to token))
-
-        } else call.respond(SignInResponse())
     }
 }
 
 fun Route.verifyPhone() {
     post("/verifyPhoneNumber") {
-        val verifyPhone = call.receive<Phone>()
-        val result = CrudOperations.checkIfPhoneExists(
-            phoneNumber = verifyPhone.phoneNumber
-        )
-        println(result)
-        if (result != null) {
-            call.respond(
-                status = HttpStatusCode.OK,
-                message = PhoneQuery(
-                    status = true,
-                    message = "Phone number verification successful"
+        coroutineScope {
+            val verifyPhone = call.receive<Phone>()
+            val result = async{
+                UserServices.checkIfPhoneExists(
+                phoneNumber = verifyPhone.phoneNumber
+            )
+            }.await()
+            println(result)
+            if (result != null) {
+                call.respond(
+                    status = HttpStatusCode.OK,
+                    message = PhoneQuery(
+                        status = true,
+                        message = "Phone number verification successful"
+                    )
                 )
-            )
-        } else {
-            call.respond(
-                status = HttpStatusCode.OK,
-                message = PhoneQuery()
-            )
+            } else {
+                call.respond(
+                    status = HttpStatusCode.OK,
+                    message = PhoneQuery()
+                )
+            }
         }
+
     }
 
 
@@ -205,41 +261,48 @@ fun Route.verifyPhone() {
 
 fun Route.updatePassword() {
     post("/updatePassword") {
-        val updatePassword = call.receive<UpdatePassword>()
-        val hashedPassword = BCrypt.hashpw(updatePassword.newPassword, BCrypt.gensalt())
-        val verifyPhoneNumber = CrudOperations.checkIfPhoneExists(
-            phoneNumber = updatePassword.phoneNumber
-        )
-        if (verifyPhoneNumber != null) {
-            val result = CrudOperations.updatePasswordByPhoneNumber(
-                phoneNumber = verifyPhoneNumber.phoneNumber,
-                newPassword = hashedPassword
-            )
-            if (result != null) {
-                call.respond(
-                    status = HttpStatusCode.OK,
-                    message = UpdatePasswordResponse(
-                        status = true,
-                        message = "Password updated successfully",
-                    )
+        coroutineScope {
+
+            val updatePassword = call.receive<UpdatePassword>()
+            val hashedPassword = BCrypt.hashpw(updatePassword.newPassword, BCrypt.gensalt())
+            val verifyPhoneNumber = async {
+                UserServices.checkIfPhoneExists(
+                    phoneNumber = updatePassword.phoneNumber
                 )
+            }.await()
+            if (verifyPhoneNumber != null) {
+                val result = async {
+                    UserServices.updatePasswordByPhoneNumber(
+                    phoneNumber = verifyPhoneNumber.phoneNumber,
+                    newPassword = hashedPassword
+                )
+                }.await()
+                if (result != null) {
+                    call.respond(
+                        status = HttpStatusCode.OK,
+                        message = UpdatePasswordResponse(
+                            status = true,
+                            message = "Password updated successfully",
+                        )
+                    )
+                } else {
+                    call.respond(
+                        status = HttpStatusCode.OK,
+                        message = UpdatePasswordResponse(
+                            status = false,
+                            message = "Failed to update password ",
+                        )
+                    )
+                }
+
             } else {
                 call.respond(
                     status = HttpStatusCode.OK,
                     message = UpdatePasswordResponse(
-                        status = false,
-                        message = "Failed to update password ",
+                        message = "Password update failed please confirm your phone number"
                     )
                 )
             }
-
-        } else {
-            call.respond(
-                status = HttpStatusCode.OK,
-                message = UpdatePasswordResponse(
-                    message = "Password update failed please confirm your phone number"
-                )
-            )
         }
     }
 }

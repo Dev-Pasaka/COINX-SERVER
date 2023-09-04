@@ -1,6 +1,5 @@
-package online.pasaka.routes
+package online.pasaka.resource.routes
 
-import online.pasaka.database.CrudOperations
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -11,16 +10,15 @@ import io.ktor.server.routing.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import online.pasaka.model.merchant.CryptoBuyAd
-import online.pasaka.model.merchant.wallet.MerchantTopUp
-import online.pasaka.model.merchant.wallet.MerchantTopUpsHistory
+import online.pasaka.Kafka.KafkaProducer
+import online.pasaka.model.merchant.wallet.MerchantFloatTopUp
 import online.pasaka.model.merchant.wallet.MerchantWithdrawal
-import online.pasaka.model.merchant.wallet.MerchantsWithdrawalsHistory
 import online.pasaka.model.user.PaymentMethod
 import online.pasaka.responses.DefaultResponse
 import online.pasaka.responses.MerchantFloatTopUpTransactionsHistoryResponse
 import online.pasaka.responses.MerchantFloatWithdrawalHistoryResponse
 import online.pasaka.responses.MerchantRegistrationResponse
+import online.pasaka.service.MerchantServices
 
 
 fun Route.becomeMerchant() {
@@ -31,7 +29,7 @@ fun Route.becomeMerchant() {
                println(principal?.payload?.getClaim("email"))
                val result = async(Dispatchers.IO) {
                    try {
-                       CrudOperations.becomeMerchant(
+                       MerchantServices.becomeMerchant(
                            email = principal?.payload?.getClaim("email").toString().removeSurrounding("\""),
                        )
 
@@ -89,7 +87,7 @@ fun Route.merchantPaymentMethod(){
                 println(paymentMethod)
                 val result = async(Dispatchers.IO) {
                     try {
-                        CrudOperations.addMerchantPaymentMethod(
+                        MerchantServices.addMerchantPaymentMethod(
                             email = principal,
                             paymentMethod = paymentMethod
                         )
@@ -141,56 +139,36 @@ fun Route.merchantFloatTopUp(){
         post("/merchantFloatTopUp") {
             coroutineScope {
                 val email = call.principal<JWTPrincipal>()?.payload?.getClaim("email").toString().removeSurrounding("\"")
-                val merchantTopUp = call.receive<MerchantTopUp>()
-                val topUpFloat = async(Dispatchers.IO) {
-                    try {
-                        CrudOperations.merchantTopUpFloat(
-                            email = email,
-                            amount = merchantTopUp.amount,
-                            currency = merchantTopUp.currency
-                        )
-                    }catch (e:Exception){
-                        e.printStackTrace()
-                        "An expected error has occurred"
-                    }
+                val merchantTopUp = call.receive<MerchantFloatTopUp>()
+
+                val merchantTopUpProducer = try {
+                    KafkaProducer().merchantTopUpProducer(
+                        email = email,
+                        topic = "MerchantFloatTopUp",
+                        message = merchantTopUp
+                    )
+                    true
+                }catch (e:Exception){
+                    e.printStackTrace()
+                    false
                 }
-                when(val topUpFloatResult = topUpFloat.await()){
-                    "Float top-up was successful" ->{
-                        call.respond(
-                            status = HttpStatusCode.OK,
-                            message = DefaultResponse(
-                                status = true,
-                                message =  topUpFloatResult
-                            )
+
+                if (merchantTopUpProducer){
+                    call.respond(
+                        status = HttpStatusCode.OK,
+                        message = DefaultResponse(
+                            status = true,
+                            message =  "Float top-up was successful"
                         )
-                    }
-                    "Float top-up was not successful" -> {
-                        call.respond(
-                            status = HttpStatusCode.OK,
-                            message = DefaultResponse(
-                                status = false,
-                                message =  topUpFloatResult
-                            )
+                    )
+                }else {
+                    call.respond(
+                        status = HttpStatusCode.OK,
+                        message = DefaultResponse(
+                            status = false,
+                            message =  "Float top-up was not successful"
                         )
-                    }
-                    "Currency is not supported, use USD" -> {
-                        call.respond(
-                            status = HttpStatusCode.OK,
-                            message = DefaultResponse(
-                                status = false,
-                                message =  topUpFloatResult
-                            )
-                        )
-                    }
-                    "Merchant does not exist" -> {
-                        call.respond(
-                            status = HttpStatusCode.OK,
-                            message = DefaultResponse(
-                                status = false,
-                                message =  topUpFloatResult
-                            )
-                        )
-                    }
+                    )
                 }
             }
 
@@ -206,7 +184,7 @@ fun Route.merchantFloatWithdrawal(){
                 val merchantWithdrawal = call.receive<MerchantWithdrawal>()
                 val withdrawalFloat = async(Dispatchers.IO) {
                     try {
-                        CrudOperations.merchantWithdrawalFloat(
+                        MerchantServices.merchantWithdrawalFloat(
                             email = email,
                             amount = merchantWithdrawal.amount,
                             currency = merchantWithdrawal.currency
@@ -244,6 +222,15 @@ fun Route.merchantFloatWithdrawal(){
                             )
                         )
                     }
+                    "You have insufficient balance" ->{
+                        call.respond(
+                            status = HttpStatusCode.OK,
+                            message = DefaultResponse(
+                                status = false,
+                                message =  withdrawalResult
+                            )
+                        )
+                    }
                     "Merchant does not exist" -> {
                         call.respond(
                             status = HttpStatusCode.OK,
@@ -269,7 +256,7 @@ fun Route.getMerchantFloatTopUpHistory(){
                     call.principal<JWTPrincipal>()?.payload?.getClaim("email").toString().removeSurrounding("\"")
                 println(email)
                 val result = try {
-                    CrudOperations.getMerchantFloatTopUpHistory(email = email)
+                    MerchantServices.getMerchantFloatTopUpHistory(email = email)
                 } catch (e: Exception) {
                     e.printStackTrace()
                     listOf()
@@ -303,7 +290,7 @@ fun Route.getMerchantFloatWithdrawalHistory(){
                     call.principal<JWTPrincipal>()?.payload?.getClaim("email").toString().removeSurrounding("\"")
                 println(email)
                 val result = try {
-                    CrudOperations.getMerchantFloatWithdrawalHistory(email = email)
+                    MerchantServices.getMerchantFloatWithdrawalHistory(email = email)
                 } catch (e: Exception) {
                     e.printStackTrace()
                     listOf()
@@ -329,11 +316,5 @@ fun Route.getMerchantFloatWithdrawalHistory(){
                 }
             }
         }
-    }
-}
-
-fun Route.createCryptoBuyAd(){
-    post("/createCryptoBuyAd"){
-        val cryptoBuyAd = call.receive<CryptoBuyAd>()
     }
 }

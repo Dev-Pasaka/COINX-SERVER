@@ -1,4 +1,4 @@
-package online.pasaka.routes
+package online.pasaka.resource.routes
 
 import com.example.cryptodata.GetAllCryptoPrices
 import com.example.cryptodata.GetCryptoPrice

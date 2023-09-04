@@ -1,5 +1,8 @@
-package com.example.responses
+package online.pasaka.responses
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class Portfolio(
 
     val message:String = "failed to your portfolio",

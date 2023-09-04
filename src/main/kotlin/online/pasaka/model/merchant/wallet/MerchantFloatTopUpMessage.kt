@@ -1,3 +1,10 @@
 package online.pasaka.model.merchant.wallet
 
-data class MerchantFloatTopUpMessage()
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class MerchantFloatTopUpMessage(
+    val email:String,
+    val amount:Double,
+    val currency:String
+)

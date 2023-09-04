@@ -1,27 +1,27 @@
 package online.pasaka.service
 
+import com.example.cryptodata.GetAllCryptoPrices
 import com.example.database.DatabaseConnection
 import com.mongodb.client.MongoDatabase
 import com.mongodb.client.result.UpdateResult
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import online.pasaka.database.CrudOperations
 import online.pasaka.model.user.User
+import online.pasaka.model.user.portfolio.LiveCryptoPrice
+import online.pasaka.model.user.portfolio.LivePortfolio
 import online.pasaka.model.wallet.Wallet
-import org.litote.kmongo.eq
-import org.litote.kmongo.findOne
-import org.litote.kmongo.getCollection
-import org.litote.kmongo.setValue
+import org.litote.kmongo.*
+import java.text.DecimalFormat
 
 
 object UserServices{
-    private val dbUser = CrudOperations.database.getCollection<User>()
+    private val dbUser = DatabaseConnection.database.getCollection<User>()
     private val database: MongoDatabase = DatabaseConnection.database
     private val dbTraderWallet = database.getCollection<Wallet>()
     suspend fun createUser(userRegistration: User): Boolean {
         return coroutineScope {
             async { dbUser.insertOne(userRegistration).wasAcknowledged() }.await()
-
         }
     }
 
@@ -32,19 +32,17 @@ object UserServices{
 
     }
 
-    suspend fun getUserPortfolio(email: String): Wallet? {
-        return coroutineScope {
-            async { dbTraderWallet.findOne(Wallet::walletId eq email) }.await()
-        }
-    }
-
     suspend fun getUserData(email: String): User? {
        return coroutineScope {
             async { dbUser.findOne(User::email eq email)  }.await()
         }
 
     }
-
+    private suspend fun getUserPortfolio(email: String): Wallet? {
+        return coroutineScope {
+          async(Dispatchers.IO){dbTraderWallet.findOne(Wallet::walletId eq email)}.await()
+        }
+    }
     suspend fun fetchUserCredentials(email: String): User? {
         return coroutineScope {
             async { dbUser.findOne(User::email eq email) }.await()
@@ -61,7 +59,39 @@ object UserServices{
         return coroutineScope {
             async {dbUser.updateOne(User::phoneNumber eq phoneNumber, setValue(User::password, newPassword)) }.await()
         }
-
-
+    }
+    suspend fun liveUserPortfolio(email: String): LivePortfolio{
+        return coroutineScope {
+            val userPortfolio = async(Dispatchers.IO){getUserPortfolio(email)}.await()
+            val decimalFormat = DecimalFormat("#.##")
+            var total = 0.0
+            val cryptos = GetAllCryptoPrices().getAllCryptoMetadata()
+            val portfolio = mutableListOf<LiveCryptoPrice>()
+            userPortfolio?.assets?.forEach { coin ->
+                run {
+                    cryptos?.forEach {
+                        if (coin.symbol == it.symbol.replace(regex = Regex("\""), "")) {
+                            println(coin.symbol)
+                            println("amount = ${coin.amount}, price = ${it.price}")
+                            total += it.price.toString().toDouble() * coin.amount
+                            println(total)
+                            portfolio.add(
+                                LiveCryptoPrice(
+                                    symbol = coin.symbol,
+                                    name = coin.name,
+                                    amount = coin.amount,
+                                    marketPrice = decimalFormat.format(it.price.toString().toDouble() * coin.amount)
+                                        .toDouble()
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+            LivePortfolio(
+                balance = decimalFormat.format(total).toDouble(),
+                assets = portfolio
+            )
+        }
     }
 }

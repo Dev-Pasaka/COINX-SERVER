@@ -1,6 +1,8 @@
 val ktor_version: String by project
 val kotlin_version: String by project
 val logback_version: String by project
+val confluent_version: String by project
+val ak_version: String by project
 
 plugins {
     kotlin("jvm") version "1.8.21"
@@ -19,6 +21,11 @@ application {
 
 repositories {
     mavenCentral()
+    maven {
+        url = uri("https://jitpack.io")
+    }
+    maven ("https://packages.confluent.io/maven")
+    maven ("https://kotlin.bintray.com/ktor")
 }
 
 dependencies {
@@ -48,6 +55,25 @@ dependencies {
     implementation("org.mindrot:jbcrypt:0.4")
     //status pages
     implementation("io.ktor:ktor-server-status-pages:$ktor_version")
+    //Logging
+    implementation("ch.qos.logback:logback-classic:$logback_version")
+    implementation("io.ktor:ktor-server-call-logging:$ktor_version")
+    //Kafka
+    implementation("com.github.gAmUssA:ktor-kafka:main-SNAPSHOT")
+
+    implementation("org.apache.kafka:kafka-streams:2.7.0")
+    implementation("io.confluent:kafka-json-schema-serializer:$confluent_version")
+    implementation("io.confluent:kafka-streams-json-schema-serde:$confluent_version") {
+        exclude("org.apache.kafka", "kafka-clients")
+
+    }
+    //websokets
+    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktor_version")
+    implementation("io.ktor:ktor-server-websockets:$ktor_version")
+    //Google guava library
+    implementation("com.google.guava:guava:30.1-jre")
+    // https://mvnrepository.com/artifact/com.github.jkutner/env-keystore
+    implementation("com.github.jkutner:env-keystore:0.1.3")
 }
 
 tasks {
@@ -55,6 +81,6 @@ tasks {
 }
 ktor {
     fatJar {
-        archiveFileName.set("fat.jar")
+        archiveFileName.set("CoinxServer.jar")
     }
 }
