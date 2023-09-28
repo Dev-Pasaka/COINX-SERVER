@@ -1,4 +1,4 @@
-package com.example.responses
+package online.pasaka.responses
 
 import kotlinx.serialization.Serializable
 

@@ -7,6 +7,5 @@ import kotlinx.serialization.Serializable
 data class Wallet(
     var walletId :String = "",
     val assets:List<CryptoCoin> = listOf()
-
 )
 

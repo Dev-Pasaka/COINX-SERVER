@@ -5,13 +5,15 @@ import io.ktor.server.routing.*
 import io.ktor.server.response.*
 import io.ktor.server.application.*
 import online.pasaka.resource.routes.*
-import online.pasaka.routes.*
 
 fun Application.configureRouting() {
     routing {
+
         get("/") {
-            call.respondText("Hello World! pasaka")
+            val targetUrl = "https://coinx.co.ke"
+            call.respondRedirect(targetUrl, permanent = false)
         }
+
         cryptoPrices()
         cryptoPrice()
         userRegistration()
@@ -26,6 +28,9 @@ fun Application.configureRouting() {
         merchantFloatWithdrawal()
         getMerchantFloatTopUpHistory()
         getMerchantFloatWithdrawalHistory()
-
+        deleteAccount()
+        createBuyAd()
+        createSellAd()
+        merchantCryptoSwap()
     }
 }

@@ -4,6 +4,7 @@ import java.security.SecureRandom
 
 object OtpCodeGenerator {
     fun generateCode():String{
+
         val random = SecureRandom()
         val bytes = ByteArray(6)
         random.nextBytes(bytes)

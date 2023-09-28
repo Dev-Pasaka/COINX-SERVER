@@ -29,6 +29,7 @@ repositories {
 }
 
 dependencies {
+
     implementation("io.ktor:ktor-server-content-negotiation-jvm:$ktor_version")
     implementation("io.ktor:ktor-server-core-jvm:$ktor_version")
     implementation("io.ktor:ktor-serialization-kotlinx-json-jvm:$ktor_version")
@@ -37,30 +38,37 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:$logback_version")
     testImplementation("io.ktor:ktor-server-tests-jvm:$ktor_version")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
+
     //Client Requests engine
     implementation("io.ktor:ktor-client-core:$ktor_version")
     implementation("io.ktor:ktor-client-cio:$ktor_version")
-    //Json Decoding
+
+    //Json Encoding & Decoding
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktor_version")
     implementation("io.ktor:ktor-client-content-negotiation:$ktor_version")
+
     //Mongodb
     implementation("org.litote.kmongo:kmongo:4.5.1")
     implementation("org.litote.kmongo:kmongo-coroutine:4.5.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.2")
     implementation("org.mongodb:mongodb-driver-sync:4.3.1")
+
     //JWT
     implementation("io.ktor:ktor-server-auth:$ktor_version")
     implementation("io.ktor:ktor-server-auth-jwt:$ktor_version")
+
     //Hashing
     implementation("org.mindrot:jbcrypt:0.4")
+
     //status pages
     implementation("io.ktor:ktor-server-status-pages:$ktor_version")
+
     //Logging
     implementation("ch.qos.logback:logback-classic:$logback_version")
     implementation("io.ktor:ktor-server-call-logging:$ktor_version")
+
     //Kafka
     implementation("com.github.gAmUssA:ktor-kafka:main-SNAPSHOT")
-
     implementation("org.apache.kafka:kafka-streams:2.7.0")
     implementation("io.confluent:kafka-json-schema-serializer:$confluent_version")
     implementation("io.confluent:kafka-streams-json-schema-serde:$confluent_version") {
@@ -70,6 +78,7 @@ dependencies {
     //websokets
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktor_version")
     implementation("io.ktor:ktor-server-websockets:$ktor_version")
+
     //Google guava library
     implementation("com.google.guava:guava:30.1-jre")
     // https://mvnrepository.com/artifact/com.github.jkutner/env-keystore
@@ -81,6 +90,6 @@ tasks {
 }
 ktor {
     fatJar {
-        archiveFileName.set("CoinxServer.jar")
+        archiveFileName.set("CoinxApi.jar")
     }
 }

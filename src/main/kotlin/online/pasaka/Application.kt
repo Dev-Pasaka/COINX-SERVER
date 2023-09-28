@@ -10,32 +10,33 @@ import online.pasaka.Kafka.KafkaConsumers
 import online.pasaka.plugins.*
 
 suspend fun main() {
+
     coroutineScope {
+
         val serverJob = launch(Dispatchers.IO) {
+
             embeddedServer(
                 Netty,
-                port = (System.getenv("PORT") ?: "8888").toInt(),
-                host = "localhost",
+                port = (System.getenv("PORT") ?: "8080").toInt(),
+                host = "0.0.0.0",
                 module = Application::module
-            )
-                .start(wait = true)
+            ).start(wait = true)
+
         }
 
-        // Launch Kafka consumer and embedded server concurrently
         val consumerJob = launch {
             KafkaConsumers().startConsumers()
         }
 
-
-
-        // Wait for both jobs to complete
         consumerJob.join()
         serverJob.join()
+
     }
 }
 
 
 fun Application.module() {
+
     configureSerialization()
     configureSecurity()
     configureRouting()

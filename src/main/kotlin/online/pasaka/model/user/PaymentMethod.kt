@@ -7,6 +7,7 @@ import online.pasaka.model.user.payment_platforms.MpesaSafaricom
 import online.pasaka.model.user.payment_platforms.MpesaTill
 @Serializable
 data class PaymentMethod(
+
     @SerialName("mpesaSafaricom")
     val mpesaSafaricom:MpesaSafaricom? = null,
 
@@ -16,3 +17,4 @@ data class PaymentMethod(
     @SerialName("mpesaTill")
     val mpesaTill:MpesaTill? = null
 )
+

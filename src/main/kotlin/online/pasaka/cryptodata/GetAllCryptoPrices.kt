@@ -1,6 +1,5 @@
-package com.example.cryptodata
+package online.pasaka.cryptodata
 
-import com.example.config.Config
 import online.pasaka.model.wallet.crypto.Cryptocurrency
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
@@ -8,14 +7,12 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
-
-
-
-
+import online.pasaka.config.Config
 
 
 class GetAllCryptoPrices {
-    suspend fun getAllCryptoMetadata(): List<Cryptocurrency>?{
+    suspend fun getAllCryptoMetadata(): List<Cryptocurrency> {
+
         val config = Config.load
         val url = config.property("coinmarketcap_listing_url").getString()
         val client = HttpClient(CIO)
@@ -28,12 +25,13 @@ class GetAllCryptoPrices {
                 parameter("convert","KES")
             }
         }
+
         val jsonResponseString:String = request.bodyAsText()
-        var cryptoData:List<*>
+        val cryptoData:List<*>
         val jsonResponseObj = Json.parseToJsonElement(jsonResponseString) as JsonObject
         cryptoData = jsonResponseObj["data"] as List<*>
-
         val top10CryptoPrices = mutableListOf<Cryptocurrency>()
+
         for (data in cryptoData){
             val dataObj = data as Map<*,*>
             val id = dataObj["id"]
@@ -61,6 +59,7 @@ class GetAllCryptoPrices {
             )
             )
         }
+
         return top10CryptoPrices
 
     }

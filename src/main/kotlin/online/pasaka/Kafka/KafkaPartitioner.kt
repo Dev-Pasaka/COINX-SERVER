@@ -14,12 +14,23 @@ class KafkaPartitioner : Partitioner {
 
     override fun close() {}
 
-    override fun partition(topic: String?, key: Any?, keyBytes: ByteArray?, value: Any?, valueBytes: ByteArray?, cluster: Cluster?): Int {
+    override fun partition(
+        topic: String?,
+        key: Any?,
+        keyBytes: ByteArray?,
+        value: Any?,
+        valueBytes: ByteArray?,
+        cluster: Cluster?
+    ): Int {
+
         val availablePartitions = cluster?.partitionsForTopic("MerchantFloatTopUp")?.size
+
         return synchronized(this) {
+
             val partition = currentPartition
             currentPartition = (currentPartition + 1) % availablePartitions!!
             partition
+
         }
     }
 }

@@ -6,7 +6,6 @@ import kotlinx.serialization.Serializable
 data class Portfolio(
 
     val message:String = "failed to your portfolio",
-
     val status:Boolean = false
 
 )

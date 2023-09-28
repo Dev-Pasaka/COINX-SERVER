@@ -3,7 +3,7 @@ package online.pasaka.model.merchant.wallet
 import kotlinx.serialization.Serializable
 import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.types.ObjectId
-import java.util.*
+
 @Serializable
 data class MerchantsWithdrawalsHistory(
     @BsonId()
@@ -11,8 +11,7 @@ data class MerchantsWithdrawalsHistory(
     val fullName:String,
     val userName:String,
     val email:String,
-    val currency: String = Currency.getInstance("USD").toString(),
-    val amount:Double,
-    val totalBalance:Double,
+    val crypto: String = "USDT",
+    val usdtAmount:Double,
     val timeStamp:String
 )

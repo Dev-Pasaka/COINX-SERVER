@@ -1,4 +1,4 @@
-package com.example.config
+package online.pasaka.config
 
 object JWTConfig {
 

@@ -2,10 +2,12 @@ package online.pasaka.model.merchant
 
 import online.pasaka.model.user.PaymentMethod
 import org.bson.codecs.pojo.annotations.BsonId
+import org.bson.types.ObjectId
+import java.util.Objects
 
 data class Merchant(
     @BsonId()
-    val id:String,
+    val id:String = ObjectId().toString(),
     val fullName: String,
     val username: String,
     val phoneNumber:String,
@@ -16,6 +18,5 @@ data class Merchant(
     var createdAt: String = "",
     val country: String = "Kenya",
     var kycVerification:Boolean = false,
-    val merchant:Boolean = false,
     var paymentMethod: PaymentMethod? = null
 )

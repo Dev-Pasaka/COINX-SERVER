@@ -9,4 +9,5 @@ data class DefaultResponse(
     @Contextual
     val message:String = "",
     val status:Boolean = false
+
 )

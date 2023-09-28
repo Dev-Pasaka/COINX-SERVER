@@ -21,5 +21,5 @@ data class User(
     val password: String,
     var createdAt: String = "",
     val country: String = "Kenya",
-){
-}
+
+)

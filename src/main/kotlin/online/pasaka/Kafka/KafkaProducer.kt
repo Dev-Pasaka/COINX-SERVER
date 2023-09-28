@@ -6,7 +6,6 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import online.pasaka.config.KafkaConfig
-import online.pasaka.model.merchant.wallet.MerchantFloatTopUp
 import online.pasaka.model.merchant.wallet.MerchantFloatTopUpMessage
 import online.pasaka.model.merchant.wallet.MerchantFloatWithdrawalMessage
 import org.apache.kafka.clients.producer.KafkaProducer
@@ -16,25 +15,17 @@ import org.apache.kafka.common.serialization.StringSerializer
 import java.util.*
 
 class KafkaProducer{
-    /*init {
-        // Set the JAAS configuration
-        System.setProperty(
-            "java.security.auth.login.config",
-            "/home/paskado/Downloads/coinx-server/src/main/resources/jass.conf"
-        )
-    }*/
-
     suspend fun merchantTopUpProducer(
         email:String,
         topic: String = "pasaka",
         properties:Properties = Properties(),
-        message: MerchantFloatTopUp
+        message: String
     )  = coroutineScope{
+
         launch {
 
-
             val producerProps = properties.apply {
-                put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaConfig.BOOTSTRAPSERVER)
+                put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaConfig.BOOTSTRAP_SERVER_URL)
                 put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java)
                 put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java)
             }
@@ -42,8 +33,7 @@ class KafkaProducer{
             val producer = KafkaProducer<Nothing, String>(producerProps)
             val merchantTopUp = MerchantFloatTopUpMessage(
                 email = email,
-                amount = message.amount,
-                currency = message.currency
+                crypto = message,
             )
 
             val json = Json.encodeToString(merchantTopUp)
@@ -61,13 +51,12 @@ class KafkaProducer{
         email:String,
         topic: String = "pasaka",
         properties:Properties = Properties(),
-        message: MerchantFloatTopUp
+        message: String
     )  = coroutineScope{
         launch {
 
-
             val producerProps = properties.apply {
-                put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaConfig.BOOTSTRAPSERVER)
+                put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaConfig.BOOTSTRAP_SERVER_URL)
                 put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java)
                 put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java)
             }
@@ -75,8 +64,7 @@ class KafkaProducer{
             val producer = KafkaProducer<Nothing, String>(producerProps)
             val merchantTopUp = MerchantFloatWithdrawalMessage(
                 email = email,
-                amount = message.amount,
-                currency = message.currency
+                amount = message
             )
 
             val json = Json.encodeToString(merchantTopUp)
@@ -96,7 +84,7 @@ suspend fun main() {
         KafkaProducer().merchantTopUpProducer(
             email = "dev.pasaka@gmail.com",
             topic = "MerchantFloatTopUp",
-            message = MerchantFloatTopUp( amount = 10.2, currency = "USD")
+            message = "0.0"
         )
     }
 

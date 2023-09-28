@@ -1,15 +1,12 @@
-package com.example.cryptodata
+package online.pasaka.cryptodata
 
-import com.example.config.Config
 import online.pasaka.model.wallet.crypto.Cryptocurrency
 import kotlinx.serialization.json.*
-
-
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
-
+import online.pasaka.config.Config
 
 class GetCryptoPrice {
 
@@ -25,7 +22,7 @@ class GetCryptoPrice {
                 //parameter("limit","10")
                 //parameter("coins", "Bitcoin")
                 parameter("symbol",currencySymbol)
-                parameter("convert","KES")
+                parameter("convert","USD")
             }
         }
 
@@ -35,17 +32,17 @@ class GetCryptoPrice {
         val jsonResponseObj = Json.parseToJsonElement(jsonResponseString) as JsonObject
         val cryptoData = jsonResponseObj["data"]
         val cryptoObject = Json.parseToJsonElement(cryptoData.toString()) as JsonObject
-        val crypto = cryptoObject[currencySymbol] as Map<String,*>
+        val crypto = cryptoObject[currencySymbol] as? Map<*,*>
         val cryptoPriceQuoteObj = Json.parseToJsonElement(crypto.toString()) as JsonObject
         val cryptoQuote = cryptoPriceQuoteObj["quote"]
         val cryptoKesObj = Json.parseToJsonElement(cryptoQuote.toString()) as JsonObject
-        val cryptoInKes = cryptoKesObj["KES"] as Map<String, Double>
+        val cryptoInKes = cryptoKesObj["USD"] as Map<String,Double>
         println(cryptoInKes)
 
         return Cryptocurrency(
-            id = crypto["id"].toString().toInt(),
-            name = crypto["name"].toString(),
-            symbol = crypto["symbol"].toString(),
+            id = crypto?.get("id")?.toString()?.toInt() ?: 0,
+            name = crypto?.get("name")?.toString() ?: "",
+            symbol = crypto?.get("symbol")?.toString() ?: "",
             price = cryptoInKes["price"].toString(),
             volume24h =cryptoInKes["volume_24h"].toString(),
             volumeChange24h = cryptoInKes["volume_change_24h"].toString(),
@@ -62,4 +59,10 @@ class GetCryptoPrice {
     }
 
 
+
+
+}
+
+suspend fun main(){
+    println(GetCryptoPrice().getCryptoMetadata())
 }

@@ -5,6 +5,5 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class MerchantFloatTopUpMessage(
     val email:String,
-    val amount:Double,
-    val currency:String
+    val crypto:String
 )
