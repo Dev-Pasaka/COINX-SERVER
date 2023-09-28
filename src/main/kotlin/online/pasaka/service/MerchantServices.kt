@@ -969,41 +969,6 @@ object MerchantServices {
 }
 
 suspend fun main() {
-    /*  println(
-          MerchantServices.createSellAd(
-              cryptoSellAdOrder = CryptoSellAdOrder(
-                  email = "dev.pasaka@gmail.com",
-                  cryptoName = "USDT",
-                  cryptoSymbol = "USDT",
-                  totalAmount = 40.0,
-                  minLimit = 10.0,
-                  maxLimit = 39.0
-              )
-          )
-      )*/
 
-    /*println(
-        MerchantServices.createBuyAd(
-            cryptoBuyAdOrder = CryptoBuyAdOrder(
-                email = "dev.pasaka@gmail.com",
-                cryptoSymbol = "USDT",
-                totalAmount = 100.0,
-                cryptoName = "Tether Usdt",
-                minLimit = 10.0,
-                maxLimit = 90.0
-            )
-        )
-    )*/
-
-    /*println(
-        MerchantServices.swapCrypto(
-            CryptoSwap(
-                email = "dev.pasaka@gmail.com",
-                cryptoAmount = 20.0,
-                fromCryptoSymbol = "BNB",
-                toCryptoSymbol = "ADA"
-            )
-        )
-    )*/
 }
 
