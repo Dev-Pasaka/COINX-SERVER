@@ -36,4 +36,5 @@ out/
 .vscode/
 
 # Ignore Ktor application.conf file
+# .gitignore
 application.conf
