@@ -1,6 +1,7 @@
 package online.pasaka.config
 
 object MongoDBConfig {
-    const val MONGODB_URL = "mongodb+srv://pascarl:pasaka001@coinx.lif2vaj.mongodb.net/"
-    const val Database_Name = "Coinx"
+    val config = Config.load
+    val MONGODB_URL = config.property("MONGODB_URL").getString()
+    val DATABASE_NAME = config.property("DATABASE_NAME").getString()
 }
