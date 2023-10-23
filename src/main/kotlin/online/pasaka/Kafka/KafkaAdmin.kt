@@ -125,14 +125,19 @@ class KafkaAdmin(private val properties: Properties = Properties()) {
 fun main() {
 
 
-    //println(KafkaAdmin().describeTopic(topicName = "MerchantFloatTopUp"))
+   // println(KafkaAdmin().describeTopic(topicName = KafkaConfig.EMAIL_NOTIFICATIONS))
 //println(KafkaAdmin().describeTopic(topicName = "Test_Topic"))
-  //println(KafkaAdmin().createTopic(topicName = KafkaConfig.MERCHANT_FLOAT_TOP_UP))
+// println(KafkaAdmin().createTopic(topicName = KafkaConfig.NOTIFICATIONS))
+   /* repeat(10){
+        println(KafkaAdmin().deleteTopic(topicName = KafkaConfig.MERCHANT_FLOAT_WITHDRAWAL))
+        println(KafkaAdmin().deleteTopic(topicName = KafkaConfig.MERCHANT_FLOAT_TOP_UP))
+        println(KafkaAdmin().listTopics())
+
+    }*/
+    println(KafkaAdmin().deleteTopic(topicName = KafkaConfig.EMAIL_NOTIFICATIONS))
+    //println(KafkaAdmin().deleteTopic(topicName = KafkaConfig.MERCHANT_FLOAT_WITHDRAWAL))
+
   println(KafkaAdmin().listTopics())
-  // println(KafkaAdmin().deleteTopic(topicName = KafkaConfig.MERCHANT_FLOAT_TOP_UP))
-
-
-
 }
 
 

@@ -5,6 +5,7 @@ import io.ktor.server.routing.*
 import io.ktor.server.response.*
 import io.ktor.server.application.*
 import online.pasaka.resource.routes.*
+import online.pasaka.resource.serverSentEvents.sentEvents
 
 fun Application.configureRouting() {
     routing {
@@ -32,5 +33,7 @@ fun Application.configureRouting() {
         createBuyAd()
         createSellAd()
         merchantCryptoSwap()
+        sentEvents()
+        cryptoBuyOrder()
     }
 }

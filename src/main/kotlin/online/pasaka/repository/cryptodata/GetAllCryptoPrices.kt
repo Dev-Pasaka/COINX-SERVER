@@ -1,4 +1,4 @@
-package online.pasaka.cryptodata
+package online.pasaka.repository.cryptodata
 
 import online.pasaka.model.wallet.crypto.Cryptocurrency
 import io.ktor.client.*

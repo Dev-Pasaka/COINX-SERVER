@@ -6,7 +6,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import online.pasaka.cryptoSwapListing.CryptoAssets
-import online.pasaka.cryptodata.GetCryptoPrice
+import online.pasaka.repository.cryptodata.GetCryptoPrice
 import online.pasaka.rates.CreateCryptoAdsRate
 import online.pasaka.model.cryptoAds.*
 import online.pasaka.model.merchant.Merchant
@@ -74,7 +74,7 @@ object MerchantServices {
                 password = doesUserExist.password,
                 ordersCompleted = 0,
                 ordersCompletedByPercentage = 0,
-                createdAt = Utils.currentTime(),
+                createdAt = Utils.currentTimeStamp(),
                 country = "Kenya",
                 kycVerification = false,
                 paymentMethod = PaymentMethod()
@@ -166,7 +166,7 @@ object MerchantServices {
                         userName = doesUserExist.username,
                         email = doesUserExist.email,
                         usdtAmount = crypto,
-                        timeStamp = Utils.currentTime()
+                        timeStamp = Utils.currentTimeStamp()
                     )
                     dbMerchantTopUpsHistory.insertOne(topUpsHistory)
                 }
@@ -219,7 +219,7 @@ object MerchantServices {
                         userName = doesUserExist.username,
                         email = doesUserExist.email,
                         usdtAmount = crypto,
-                        timeStamp = Utils.currentTime()
+                        timeStamp = Utils.currentTimeStamp()
                     )
                     dbMerchantsWithdrawalsHistory.insertOne(topUpsHistory)
                 }
@@ -279,11 +279,11 @@ object MerchantServices {
                     cryptoAmount = cryptoBuyAdOrder.totalAmount,
                     message = DefaultResponse(
                         status = false,
-                        message = "Minimum order limit or maximum order limit can not be greater than total order amount"
+                        message = "Minimum order limit or maximum order limit can not be greater than total order cryptoAmount"
                     )
                 )
 
-            if (cryptoBuyAdOrder.margin > CreateCryptoAdsRate.maximumCreatBuyAdMargin)
+            if (cryptoBuyAdOrder.margin > CreateCryptoAdsRate.maximumCreateBuyAdMargin)
                 return@coroutineScope CreateBuyAdResult(
                     cryptoName = cryptoBuyAdOrder.cryptoName,
                     cryptoSymbol = cryptoBuyAdOrder.cryptoSymbol,
@@ -453,7 +453,7 @@ object MerchantServices {
                         cryptoSymbol = doesCryptoAssetExist.symbol,
                         cryptoAmount = cryptoBuyAdOrder.totalAmount,
                         adType = "Buy",
-                        createdAt = Utils.currentTime()
+                        createdAt = Utils.currentTimeStamp()
 
                     )
                 )
@@ -510,11 +510,11 @@ object MerchantServices {
                     cryptoAmount = cryptoSellAdOrder.totalAmount,
                     message = DefaultResponse(
                         status = false,
-                        message = "Minimum order limit or maximum order limit can not be greater than total order amount"
+                        message = "Minimum order limit or maximum order limit can not be greater than total order cryptoAmount"
                     )
                 )
 
-            if (cryptoSellAdOrder.margin > CreateCryptoAdsRate.maximumCreatBuyAdMargin)
+            if (cryptoSellAdOrder.margin > CreateCryptoAdsRate.maximumCreateBuyAdMargin)
                 return@coroutineScope CreateSellAdResult(
                     cryptoName = cryptoSellAdOrder.cryptoName,
                     cryptoSymbol = cryptoSellAdOrder.cryptoSymbol,
@@ -685,7 +685,7 @@ object MerchantServices {
                         cryptoSymbol = doesCryptoAssetExist.symbol,
                         cryptoAmount = cryptoSellAdOrder.totalAmount,
                         adType = "Sell",
-                        createdAt = Utils.currentTime()
+                        createdAt = Utils.currentTimeStamp()
 
                     )
                 )
@@ -802,11 +802,11 @@ object MerchantServices {
 
 
             val getCryptoDataTo = async {
-                GetCryptoPrice().getCryptoMetadata(currencySymbol = cryptoSwap.toCryptoSymbol)
+                GetCryptoPrice().getCryptoMetadata(cryptoSymbol = cryptoSwap.toCryptoSymbol)
             }
 
             val getCryptoDataFrom = async {
-                GetCryptoPrice().getCryptoMetadata(currencySymbol = cryptoSwap.fromCryptoSymbol)
+                GetCryptoPrice().getCryptoMetadata(cryptoSymbol = cryptoSwap.fromCryptoSymbol)
             }
 
 
@@ -868,7 +868,7 @@ object MerchantServices {
                     val amount = it.amount
                     if (getCryptoPriceFrom * amount >= swappingPrice) {
                         val fromCryptoAmountUsd = getCryptoPriceFrom * it.amount
-                        println("Available amount $fromCryptoAmountUsd")
+                        println("Available cryptoAmount $fromCryptoAmountUsd")
                         val cryptoAfterDeductionInUsd = (fromCryptoAmountUsd - swappingPrice)
                         val availableCrypto = cryptoAfterDeductionInUsd / getCryptoPriceFrom
                         deductFromCryptoAsset.add(

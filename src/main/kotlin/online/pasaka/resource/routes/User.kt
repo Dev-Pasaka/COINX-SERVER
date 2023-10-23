@@ -50,7 +50,7 @@ fun Route.userRegistration() {
                             username = userData.username,
                             country = "Kenya",
                             password = hashedPassword,
-                            createdAt = Utils.currentTime()
+                            createdAt = Utils.currentTimeStamp()
                         )
                     )
 

@@ -24,8 +24,8 @@ repositories {
     maven {
         url = uri("https://jitpack.io")
     }
-    maven ("https://packages.confluent.io/maven")
-    maven ("https://kotlin.bintray.com/ktor")
+    maven("https://packages.confluent.io/maven")
+    maven("https://kotlin.bintray.com/ktor")
 }
 
 dependencies {
@@ -46,6 +46,8 @@ dependencies {
     //Json Encoding & Decoding
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktor_version")
     implementation("io.ktor:ktor-client-content-negotiation:$ktor_version")
+    implementation("com.google.code.gson:gson:2.8.8")
+
 
     //Mongodb
     implementation("org.litote.kmongo:kmongo:4.5.1")
@@ -83,6 +85,19 @@ dependencies {
     implementation("com.google.guava:guava:30.1-jre")
     // https://mvnrepository.com/artifact/com.github.jkutner/env-keystore
     implementation("com.github.jkutner:env-keystore:0.1.3")
+
+    // https://mvnrepository.com/artifact/redis.clients/jedis
+    implementation("redis.clients:jedis:5.0.1")
+
+
+    //Java Mail API
+    implementation("javax.mail:javax.mail-api:1.6.2")
+    implementation("com.sun.mail:javax.mail:1.6.2")
+
+
+
+
+
 }
 
 tasks {

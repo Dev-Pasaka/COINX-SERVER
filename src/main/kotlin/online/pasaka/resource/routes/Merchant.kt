@@ -11,7 +11,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import online.pasaka.Kafka.KafkaProducer
+import online.pasaka.Kafka.producers.merchantTopUpProducer
+import online.pasaka.Kafka.producers.merchantWithdrawalProducer
 import online.pasaka.config.KafkaConfig
 import online.pasaka.model.cryptoAds.CryptoBuyAdOrder
 import online.pasaka.dto.CryptoBuyAdOrderDto
@@ -215,8 +216,7 @@ fun Route.merchantFloatTopUp() {
 
                     try {
                         if (amount.toString().toDoubleOrNull() != null) {
-
-                            KafkaProducer().merchantTopUpProducer(
+                            merchantTopUpProducer(
                                 email = email,
                                 topic = KafkaConfig.MERCHANT_FLOAT_TOP_UP,
                                 message = amount.toString()
@@ -265,7 +265,7 @@ fun Route.merchantFloatWithdrawal() {
 
                     try {
                         if (merchantWithdrawal.toString().toDoubleOrNull() != null) {
-                            KafkaProducer().merchantWithdrawalProducer(
+                            merchantWithdrawalProducer(
                                 email = email,
                                 topic = KafkaConfig.MERCHANT_FLOAT_WITHDRAWAL,
                                 message = merchantWithdrawal.toString(),

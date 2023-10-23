@@ -1,6 +1,6 @@
 package online.pasaka.service
 
-import online.pasaka.cryptodata.GetAllCryptoPrices
+import online.pasaka.repository.cryptodata.GetAllCryptoPrices
 import online.pasaka.database.DatabaseConnection
 import com.mongodb.client.MongoDatabase
 import com.mongodb.client.result.UpdateResult

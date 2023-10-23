@@ -9,10 +9,9 @@ object CreateCryptoAdsRate {
         return cryptoAmount+transactionCost
 
     }
-    fun swapAmount(amountInUSD:Double, rate: Double = 1.0):Double{
-        val swapCost = (rate/100) * amountInUSD
-        return swapCost
+    fun swapAmount(amountInUSD: Double, rate: Double = 1.0): Double {
+        return (rate / 100) * amountInUSD
     }
 
-    val maximumCreatBuyAdMargin = 0.05
+    const val maximumCreateBuyAdMargin = 0.25
 }

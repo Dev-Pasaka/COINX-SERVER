@@ -16,5 +16,5 @@ data class CreateCryptoBuyAd(
     val maxLimit:Double,
     val adStatus:AdStatus,
     val margin:Double,
-    val createdAt:String = Utils.currentTime()
+    val createdAt:String = Utils.currentTimeStamp()
 )

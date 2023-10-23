@@ -15,5 +15,5 @@ data class SellAd(
     val minLimit:Double,
     val maxLimit:Double,
     val adStatus:AdStatus,
-    val timeStamp:String = Utils.currentTime()
+    val timeStamp:String = Utils.currentTimeStamp()
 )

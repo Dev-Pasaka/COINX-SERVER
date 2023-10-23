@@ -1,7 +1,7 @@
 package online.pasaka.resource.routes
 
-import online.pasaka.cryptodata.GetAllCryptoPrices
-import online.pasaka.cryptodata.GetCryptoPrice
+import online.pasaka.repository.cryptodata.GetAllCryptoPrices
+import online.pasaka.repository.cryptodata.GetCryptoPrice
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
