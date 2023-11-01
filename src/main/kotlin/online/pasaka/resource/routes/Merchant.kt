@@ -25,7 +25,7 @@ import online.pasaka.responses.DefaultResponse
 import online.pasaka.responses.MerchantFloatTopUpTransactionsHistoryResponse
 import online.pasaka.responses.MerchantFloatWithdrawalHistoryResponse
 import online.pasaka.responses.MerchantRegistrationResponse
-import online.pasaka.service.MerchantServices
+import online.pasaka.service.merchantServices.MerchantServices
 
 
 fun Route.becomeMerchant() {
@@ -108,7 +108,6 @@ fun Route.becomeMerchant() {
         }
     }
 }
-
 fun Route.merchantPaymentMethod() {
 
     authenticate("auth-jwt") {
@@ -181,7 +180,6 @@ fun Route.merchantPaymentMethod() {
 
 
 }
-
 fun Route.merchantFloatTopUp() {
 
     authenticate("auth-jwt") {
@@ -242,7 +240,6 @@ fun Route.merchantFloatTopUp() {
         }
     }
 }
-
 fun Route.merchantFloatWithdrawal() {
 
     authenticate("auth-jwt") {
@@ -290,7 +287,6 @@ fun Route.merchantFloatWithdrawal() {
 
     }
 }
-
 fun Route.getMerchantFloatTopUpHistory() {
 
     authenticate("auth-jwt") {
@@ -338,7 +334,6 @@ fun Route.getMerchantFloatTopUpHistory() {
         }
     }
 }
-
 fun Route.getMerchantFloatWithdrawalHistory() {
 
     authenticate("auth-jwt") {
@@ -388,7 +383,6 @@ fun Route.getMerchantFloatWithdrawalHistory() {
         }
     }
 }
-
 fun Route.createBuyAd() {
     authenticate("auth-jwt") {
 
@@ -429,7 +423,6 @@ fun Route.createBuyAd() {
         }
     }
 }
-
 fun Route.createSellAd() {
     authenticate("auth-jwt") {
 
@@ -470,7 +463,6 @@ fun Route.createSellAd() {
         }
     }
 }
-
 fun Route.merchantCryptoSwap() {
     authenticate("auth-jwt") {
 

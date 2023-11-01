@@ -1,25 +1,29 @@
 package online.pasaka.Kafka.consumers
 
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import kotlinx.serialization.json.Json
 import online.pasaka.config.KafkaConfig
 import online.pasaka.model.merchant.wallet.MerchantFloatWithdrawalMessage
-import online.pasaka.service.MerchantServices
+import online.pasaka.service.merchantServices.MerchantServices
+import online.pasaka.threads.Threads
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
 import java.time.Duration
 import java.util.*
+import java.util.concurrent.Executors
 
+@OptIn(DelicateCoroutinesApi::class)
 suspend fun merchantWithdrawalConsumer(
     groupId: String = "ktor-consumer",
     topicName: String = KafkaConfig.MERCHANT_FLOAT_WITHDRAWAL
 ) {
+    val customDispatcher = Executors.newSingleThreadExecutor { r ->
+        Thread(r, Threads.CONSUMERS)
+    }.asCoroutineDispatcher()
 
-    coroutineScope {
-
-        launch {
+    val coroutineScope = CoroutineScope(customDispatcher)
+    coroutineScope.launch {
 
             val consumerProps = Properties().apply {
                 put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaConfig.BOOTSTRAP_SERVER_URL)
@@ -57,5 +61,5 @@ suspend fun merchantWithdrawalConsumer(
 
             }
         }
-    }
+
 }

@@ -35,5 +35,8 @@ fun Application.configureRouting() {
         merchantCryptoSwap()
         sentEvents()
         cryptoBuyOrder()
+        buyerTransferredFunds()
+        cancelBuyOrder()
+        releaseCrypto()
     }
 }

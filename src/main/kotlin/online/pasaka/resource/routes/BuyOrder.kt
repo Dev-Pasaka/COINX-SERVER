@@ -8,16 +8,17 @@ import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import online.pasaka.Kafka.models.BuyOrderConfirmationNotificationMessage
-import online.pasaka.Kafka.models.BuyOrderMessage
-import online.pasaka.Kafka.models.Notification
-import online.pasaka.Kafka.models.NotificationType
+import online.pasaka.Kafka.models.messages.BuyOrderMessage
 import online.pasaka.Kafka.producers.kafkaProducer
 import online.pasaka.config.KafkaConfig
 import online.pasaka.dto.BuyOrderDto
 import online.pasaka.responses.DefaultResponse
+import online.pasaka.service.buyOrderService.buyerHasTransferredFundsToMerchant
+import online.pasaka.service.buyOrderService.cancelOrder
+import online.pasaka.service.buyOrderService.merchantReleaseCrypto
 
 
 fun Route.cryptoBuyOrder() {
@@ -75,4 +76,77 @@ fun Route.cryptoBuyOrder() {
 
     }
 
+}
+fun Route.buyerTransferredFunds() {
+
+    authenticate("auth-jwt") {
+        get("/buyerTransferredFunds/{id?}") {
+            coroutineScope {
+                val orderId = call.parameters["id"] ?: ""
+                val result = try {
+                    async { buyerHasTransferredFundsToMerchant(buyOrderID = orderId) }.await()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    null
+                } ?: call.respond(
+                    status = HttpStatusCode.OK,
+                    message = "An expected error has occurred please try again."
+                )
+
+                call.respond(
+                    status = HttpStatusCode.OK,
+                    message = result
+                )
+            }
+        }
+    }
+
+}
+fun Route.cancelBuyOrder() {
+    authenticate("auth-jwt") {
+        get("/cancelOrder/{id?}") {
+            coroutineScope {
+
+                val buyOrderId = call.parameters["id"] ?: ""
+                val result = try {
+                    async { cancelOrder(buyOrderId = buyOrderId) }.await()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    null
+                } ?: call.respond(
+                    status = HttpStatusCode.OK,
+                    message = "An expected error has occurred please try again."
+                )
+
+                call.respond(
+                    status = HttpStatusCode.OK,
+                    message = result
+                )
+            }
+        }
+    }
+}
+fun Route.releaseCrypto() {
+    authenticate("auth-jwt") {
+        get("/releaseCrypto/{id?}") {
+            coroutineScope {
+
+                val buyOrderId = call.parameters["id"] ?: ""
+                val result = try {
+                    async { merchantReleaseCrypto(buyOrderID = buyOrderId) }.await()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    null
+                } ?: call.respond(
+                    status = HttpStatusCode.OK,
+                    message = "An expected error has occurred please try again."
+                )
+
+                call.respond(
+                    status = HttpStatusCode.OK,
+                    message = result
+                )
+            }
+        }
+    }
 }

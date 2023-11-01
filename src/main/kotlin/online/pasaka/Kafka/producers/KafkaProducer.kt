@@ -2,7 +2,6 @@ package online.pasaka.Kafka.producers
 
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import online.pasaka.Kafka.models.BuyOrderMessage
 import online.pasaka.config.KafkaConfig
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig

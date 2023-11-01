@@ -1,4 +1,4 @@
-package online.pasaka.Kafka.models
+package online.pasaka.Kafka.models.messages
 
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable

@@ -1,4 +1,4 @@
-package online.pasaka.service
+package online.pasaka.service.merchantServices
 
 import online.pasaka.database.DatabaseConnection
 import kotlinx.coroutines.Dispatchers
@@ -6,6 +6,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import online.pasaka.cryptoSwapListing.CryptoAssets
+import online.pasaka.database.Entries
 import online.pasaka.repository.cryptodata.GetCryptoPrice
 import online.pasaka.rates.CreateCryptoAdsRate
 import online.pasaka.model.cryptoAds.*
@@ -30,30 +31,23 @@ import org.litote.kmongo.updateOne
 
 object MerchantServices {
 
-    private val dbUser = DatabaseConnection.database.getCollection<User>()
-    private val dbMerchant = DatabaseConnection.database.getCollection<Merchant>()
-    private val dbMerchantWallet = DatabaseConnection.database.getCollection<MerchantWallet>()
-    private val dbMerchantsWithdrawalsHistory = DatabaseConnection.database.getCollection<MerchantsWithdrawalsHistory>()
-    private val dbMerchantTopUpsHistory = DatabaseConnection.database.getCollection<MerchantTopUpsHistory>()
-    private val dbCreateCreateCryptoBuyAd = DatabaseConnection.database.getCollection<CreateCryptoBuyAd>("buyAds")
-    private val dbCreateSellAd = DatabaseConnection.database.getCollection<CreateCryptoSellAd>("sellAds")
-    private val merchantAdHistory = DatabaseConnection.database.getCollection<MerchantAdsHistory>("AdsHistory")
+
     suspend fun becomeMerchant(email: String): String {
 
         return coroutineScope {
 
             val doesUserExist = async(Dispatchers.IO) {
-                dbUser.findOne(User::email eq email)
+                Entries.dbUser.findOne(User::email eq email)
             }.await() ?: return@coroutineScope "User doesn't exist"
 
-            val doesMerchantExist = async {
-                dbMerchant.findOne(Merchant::email eq email)
+            val doesMerchantExist = async(Dispatchers.IO) {
+                Entries.dbMerchant.findOne(Merchant::email eq email)
             }.await()
 
             if (doesMerchantExist != null) return@coroutineScope "Merchant already exist"
 
             val doesMerchantWalletExist = async(Dispatchers.IO) {
-                dbMerchantWallet.findOne(MerchantWallet::walletId eq email)
+                Entries.dbMerchantWallet.findOne(MerchantWallet::walletId eq email)
             }.await()
 
             if (doesMerchantWalletExist != null) return@coroutineScope "Merchant Wallet Already Exists"
@@ -79,14 +73,14 @@ object MerchantServices {
                 kycVerification = false,
                 paymentMethod = PaymentMethod()
             )
-            val createMerchant = async { dbMerchant.insertOne(merchant).wasAcknowledged() }.await()
-            val createMerchantWallet = async { dbMerchantWallet.insertOne(merchantWallet).wasAcknowledged() }.await()
+            val createMerchant = async(Dispatchers.IO) { Entries.dbMerchant.insertOne(merchant).wasAcknowledged() }.await()
+            val createMerchantWallet = async(Dispatchers.IO) { Entries.dbMerchantWallet.insertOne(merchantWallet).wasAcknowledged() }.await()
 
             if (createMerchant && createMerchantWallet) {
                 return@coroutineScope "Merchant registration was successful"
             } else {
-                launch { dbMerchant.deleteOne(Merchant::email eq email) }
-                launch { dbMerchantWallet.deleteOne(MerchantWallet::walletId eq email) }
+                launch(Dispatchers.IO) { Entries.dbMerchant.deleteOne(Merchant::email eq email) }
+                launch(Dispatchers.IO) { Entries.dbMerchantWallet.deleteOne(MerchantWallet::walletId eq email) }
                 return@coroutineScope "Merchant registration failed"
             }
 
@@ -99,8 +93,8 @@ object MerchantServices {
 
         return coroutineScope {
 
-            val existingMerchant = async {
-                dbMerchant.findOne(User::email eq email)
+            val existingMerchant = async(Dispatchers.IO) {
+                Entries.dbMerchant.findOne(User::email eq email)
             }.await() ?: return@coroutineScope "Merchant does not exist"
 
 
@@ -114,8 +108,8 @@ object MerchantServices {
             val addPaymentMethod = existingMerchant.copy(paymentMethod = updatedPaymentMethod)
 
 
-            val updateMerchantPaymentMethod = async {
-                dbMerchant.updateOne(User::email eq email, addPaymentMethod).wasAcknowledged()
+            val updateMerchantPaymentMethod = async(Dispatchers.IO) {
+                Entries.dbMerchant.updateOne(User::email eq email, addPaymentMethod).wasAcknowledged()
             }.await()
 
             when (updateMerchantPaymentMethod) {
@@ -136,11 +130,11 @@ object MerchantServices {
         return coroutineScope {
 
             val doesUserExist = async {
-                dbMerchant.findOne(Merchant::email eq email)
+                Entries.dbMerchant.findOne(Merchant::email eq email)
             }.await() ?: return@coroutineScope "Merchant does not exist"
 
             val doesMerchantWalletExist = async {
-                dbMerchantWallet.findOne(MerchantWallet::walletId eq email)
+                Entries.dbMerchantWallet.findOne(MerchantWallet::walletId eq email)
             }.await() ?: return@coroutineScope "Merchant wallet does not exist"
 
             val updatedAssets = mutableListOf<CryptoCoin>()
@@ -168,9 +162,9 @@ object MerchantServices {
                         usdtAmount = crypto,
                         timeStamp = Utils.currentTimeStamp()
                     )
-                    dbMerchantTopUpsHistory.insertOne(topUpsHistory)
+                    Entries.dbMerchantTopUpsHistory.insertOne(topUpsHistory)
                 }
-                dbMerchantWallet.updateOne(MerchantWallet::walletId eq email, updateMerchantData).wasAcknowledged()
+                Entries.dbMerchantWallet.updateOne(MerchantWallet::walletId eq email, updateMerchantData).wasAcknowledged()
             }.await()
 
 
@@ -187,11 +181,11 @@ object MerchantServices {
         return coroutineScope {
 
             val doesUserExist = async {
-                dbMerchant.findOne(Merchant::email eq email)
+                Entries.dbMerchant.findOne(Merchant::email eq email)
             }.await() ?: return@coroutineScope "Merchant does not exist"
 
             val doesMerchantWalletExist = async {
-                dbMerchantWallet.findOne(MerchantWallet::walletId eq email)
+                Entries.dbMerchantWallet.findOne(MerchantWallet::walletId eq email)
             }.await() ?: return@coroutineScope "Merchant wallet does not exist"
 
             val updatedAssets = mutableListOf<CryptoCoin>()
@@ -221,9 +215,9 @@ object MerchantServices {
                         usdtAmount = crypto,
                         timeStamp = Utils.currentTimeStamp()
                     )
-                    dbMerchantsWithdrawalsHistory.insertOne(topUpsHistory)
+                    Entries.dbMerchantsWithdrawalsHistory.insertOne(topUpsHistory)
                 }
-                dbMerchantWallet.updateOne(MerchantWallet::walletId eq email, updateMerchantData).wasAcknowledged()
+                Entries.dbMerchantWallet.updateOne(MerchantWallet::walletId eq email, updateMerchantData).wasAcknowledged()
             }.await()
 
 
@@ -241,7 +235,7 @@ object MerchantServices {
         return coroutineScope {
 
             return@coroutineScope async(Dispatchers.IO) {
-                dbMerchantTopUpsHistory.find().filter { it.email == email }
+                Entries.dbMerchantTopUpsHistory.find().filter { it.email == email }
             }.await()
 
         }
@@ -252,7 +246,7 @@ object MerchantServices {
         return coroutineScope {
 
             return@coroutineScope async(Dispatchers.IO) {
-                dbMerchantsWithdrawalsHistory.find().filter { it.email == email }
+                Entries.dbMerchantsWithdrawalsHistory.find().filter { it.email == email }
             }.await()
 
         }
@@ -295,7 +289,7 @@ object MerchantServices {
                 )
 
             val merchantData = try {
-                async { dbMerchant.findOne(Merchant::email eq cryptoBuyAdOrder.email) }
+                async { Entries.dbMerchant.findOne(Merchant::email eq cryptoBuyAdOrder.email) }
             } catch (e: Throwable) {
                 return@coroutineScope CreateBuyAdResult(
                     cryptoName = cryptoBuyAdOrder.cryptoName,
@@ -308,7 +302,7 @@ object MerchantServices {
                 )
             }
             val merchantWallet = try {
-                async { dbMerchantWallet.findOne(MerchantWallet::walletId eq cryptoBuyAdOrder.email) }
+                async { Entries.dbMerchantWallet.findOne(MerchantWallet::walletId eq cryptoBuyAdOrder.email) }
             } catch (e: Throwable) {
                 return@coroutineScope CreateBuyAdResult(
                     cryptoName = cryptoBuyAdOrder.cryptoName,
@@ -408,7 +402,7 @@ object MerchantServices {
 
             val updateMerchantAssets = try {
                 async {
-                    dbMerchantWallet.updateOne(
+                    Entries.dbMerchantWallet.updateOne(
                         MerchantWallet::walletId eq cryptoBuyAdOrder.email,
                         merchantWalletResult.copy(assets = debitAssets)
                     ).wasAcknowledged()
@@ -427,7 +421,7 @@ object MerchantServices {
 
             val createCryptoBuyAd = try {
                 async {
-                    dbCreateCreateCryptoBuyAd.insertOne(
+                    Entries.dbCreateCreateCryptoBuyAd.insertOne(
                         merchantCryptoBuyAd
                     ).wasAcknowledged()
                 }
@@ -444,7 +438,7 @@ object MerchantServices {
             }
 
             launch {
-                merchantAdHistory.insertOne(
+                Entries.merchantAdHistory.insertOne(
                     MerchantAdsHistory(
                         fullName = merchantDataResult.fullName,
                         userName = merchantDataResult.username,
@@ -526,7 +520,7 @@ object MerchantServices {
                 )
 
             val merchantData = try {
-                async { dbMerchant.findOne(Merchant::email eq cryptoSellAdOrder.email) }
+                async { Entries.dbMerchant.findOne(Merchant::email eq cryptoSellAdOrder.email) }
             } catch (e: Throwable) {
                 return@coroutineScope CreateSellAdResult(
                     cryptoName = cryptoSellAdOrder.cryptoName,
@@ -540,7 +534,7 @@ object MerchantServices {
             }
 
             val merchantWallet = try {
-                async { dbMerchantWallet.findOne(MerchantWallet::walletId eq cryptoSellAdOrder.email) }
+                async { Entries.dbMerchantWallet.findOne(MerchantWallet::walletId eq cryptoSellAdOrder.email) }
             } catch (e: Throwable) {
                 return@coroutineScope CreateSellAdResult(
                     cryptoName = cryptoSellAdOrder.cryptoName,
@@ -640,7 +634,7 @@ object MerchantServices {
 
             val updateMerchantAssets = try {
                 async {
-                    dbMerchantWallet.updateOne(
+                    Entries.dbMerchantWallet.updateOne(
                         MerchantWallet::walletId eq cryptoSellAdOrder.email,
                         merchantWalletResult.copy(assets = debitAssets)
                     ).wasAcknowledged()
@@ -659,7 +653,7 @@ object MerchantServices {
 
             val createCryptoBuyAd = try {
                 async {
-                    dbCreateSellAd.insertOne(
+                    Entries.dbCreateSellAd.insertOne(
                         merchantCryptoSellAd
                     ).wasAcknowledged()
                 }
@@ -676,7 +670,7 @@ object MerchantServices {
             }
 
             launch {
-                merchantAdHistory.insertOne(
+                Entries.merchantAdHistory.insertOne(
                     MerchantAdsHistory(
                         fullName = merchantDataResult.fullName,
                         userName = merchantDataResult.username,
@@ -771,7 +765,7 @@ object MerchantServices {
 
             val getMerchantWallet = try {
                 async {
-                    dbMerchantWallet.findOne(MerchantWallet::walletId eq cryptoSwap.email)
+                    Entries.dbMerchantWallet.findOne(MerchantWallet::walletId eq cryptoSwap.email)
                 }.await() ?: return@coroutineScope SwappingResults(
                     message = DefaultResponse(
                         status = false,
@@ -930,7 +924,7 @@ object MerchantServices {
 
             val updateMerchantWallet = try{
                 async {
-                    dbMerchantWallet.updateOne(
+                    Entries.dbMerchantWallet.updateOne(
                         MerchantWallet::walletId eq cryptoSwap.email,
                         getMerchantWallet.copy(assets = creditToCryptoAsset)
                     ).wasAcknowledged()

@@ -1,13 +1,13 @@
 package online.pasaka.Kafka.consumers
 
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import kotlinx.serialization.json.Json
-import online.pasaka.Kafka.models.BuyOrderMessage
+import online.pasaka.Kafka.models.messages.BuyOrderMessage
 import online.pasaka.config.KafkaConfig
 import online.pasaka.model.order.BuyOrder
 import online.pasaka.model.order.OrderStatus
 import online.pasaka.service.buyOrderService.createBuyOrder
+import online.pasaka.threads.Threads
 import online.pasaka.utils.Utils
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.ProducerConfig
@@ -15,17 +15,19 @@ import org.apache.kafka.common.serialization.StringDeserializer
 import org.bson.types.ObjectId
 import java.time.Duration
 import java.util.*
-import kotlin.system.exitProcess
+import java.util.concurrent.Executors
 
+@OptIn(DelicateCoroutinesApi::class)
 suspend fun cryptoBuyOrderConsumer(
     groupId: String = "cryptoBuyOrders",
     topicName: String = KafkaConfig.CRYPTO_BUY_ORDERS
 ) {
+    val customDispatcher = Executors.newSingleThreadExecutor { r ->
+        Thread(r, Threads.CONSUMERS)
+    }.asCoroutineDispatcher()
 
-    coroutineScope {
-
-        launch {
-
+    val coroutineScope = CoroutineScope(customDispatcher)
+    coroutineScope.launch {
             val consumerProps = Properties().apply {
                 put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaConfig.BOOTSTRAP_SERVER_URL)
                 put("key.deserializer", StringDeserializer::class.java)
@@ -59,7 +61,7 @@ suspend fun cryptoBuyOrderConsumer(
                                    cryptoName = buyOrderMessageObj.cryptoName,
                                    cryptoAmount = buyOrderMessageObj.cryptoAmount,
                                    orderStatus = OrderStatus.PENDING,
-                                   expiresAt = Utils.currentTimeStampPlus(900000),
+                                   expiresAt = System.currentTimeMillis() + (60000*15).toLong(),
                                    amountInKes = 0.0
                                )
                            )
@@ -74,7 +76,7 @@ suspend fun cryptoBuyOrderConsumer(
             }
 
         }
-    }
+
 }
 
 

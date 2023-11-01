@@ -1,4 +1,4 @@
-package online.pasaka.service.mailService
+package online.pasaka.service.mailService.mailTemplate
 
 import online.pasaka.utils.Utils
 

@@ -68,6 +68,8 @@ dependencies {
     //Logging
     implementation("ch.qos.logback:logback-classic:$logback_version")
     implementation("io.ktor:ktor-server-call-logging:$ktor_version")
+    implementation("org.slf4j:slf4j-api:1.7.33")
+    implementation("ch.qos.logback:logback-classic:1.2.6")
 
     //Kafka
     implementation("com.github.gAmUssA:ktor-kafka:main-SNAPSHOT")
@@ -90,9 +92,13 @@ dependencies {
     implementation("redis.clients:jedis:5.0.1")
 
 
-    //Java Mail API
+    //Java Mail SDK
     implementation("javax.mail:javax.mail-api:1.6.2")
     implementation("com.sun.mail:javax.mail:1.6.2")
+    //Afraca's taking SMS SDK
+    //implementation("com.github.AfricasTalkingLtd.africastalking-java:core:{VERSION}")
+
+
 
 
 

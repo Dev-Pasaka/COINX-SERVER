@@ -8,5 +8,8 @@ data class BuyEscrowWallet(
     val cryptoName:String,
     val cryptoSymbol: String,
     val cryptoAmount:Double,
-    val debitedAt:String
-)
+    val escrowState: EscrowState,
+    val debitedAt:String,
+    val expiresAt:Long
+
+    )

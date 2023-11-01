@@ -1,18 +1,16 @@
 package online.pasaka.service.buyOrderService
 
 import com.google.gson.Gson
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
+import kotlinx.coroutines.*
 import online.pasaka.Kafka.models.*
+import online.pasaka.Kafka.models.messages.BuyOrderConfirmationNotificationMessage
 import online.pasaka.Kafka.producers.kafkaProducer
 import online.pasaka.config.KafkaConfig
 import online.pasaka.database.DatabaseConnection
+import online.pasaka.database.Entries
 import online.pasaka.model.cryptoAds.CreateCryptoBuyAd
 import online.pasaka.model.escrow.BuyEscrowWallet
+import online.pasaka.model.escrow.EscrowState
 import online.pasaka.model.order.BuyOrder
 import online.pasaka.model.order.OrderStatus
 import online.pasaka.repository.cryptodata.GetCryptoPrice
@@ -28,17 +26,11 @@ suspend fun createBuyOrder(
     buyOrder: BuyOrder
 ): DefaultResponse {
 
-    val buyEscrowWallet = DatabaseConnection.database.getCollection<BuyEscrowWallet>("EscrowWallet")
-    val merchantCryptoBuyAd = DatabaseConnection.database.getCollection<CreateCryptoBuyAd>("buyAds")
-    val cryptoBuyOrders = DatabaseConnection.database.getCollection<BuyOrder>("BuyOrders")
-
-
-
     return coroutineScope {
 
         val merchantsCryptoAd = try {
-            async {
-                merchantCryptoBuyAd.findOne(CreateCryptoBuyAd::id eq buyOrder.adId)
+            async(Dispatchers.IO) {
+                Entries.merchantCryptoBuyAd.findOne(CreateCryptoBuyAd::id eq buyOrder.adId)
             }.await()
         } catch (e: Exception) {
             null
@@ -54,12 +46,10 @@ suspend fun createBuyOrder(
             merchantsCryptoAd.copy(totalAmount = merchantsCryptoAd.totalAmount - buyOrder.cryptoAmount)
 
         val orderId = ObjectId().toString()
-        val getKesPriceQuote = Utils.getForexPriceKES()
-        val cryptoPriceInUSD = GetCryptoPrice().getCryptoMetadata(cryptoSymbol = buyOrder.cryptoSymbol.uppercase()).price?.toDoubleOrNull()
+        val cryptoPriceInUSD = GetCryptoPrice().getCryptoMetadata(cryptoSymbol = buyOrder.cryptoSymbol.uppercase(), currency = "KES").price?.toDoubleOrNull()
                 ?: return@coroutineScope DefaultResponse(message = "Failed to fetch current prices")
-        println("Here is price :${getKesPriceQuote}")
         val transferAmountByBuyer =
-            (buyOrder.cryptoAmount * cryptoPriceInUSD*getKesPriceQuote ) + (merchantsCryptoAd.margin * getKesPriceQuote)
+            (buyOrder.cryptoAmount * cryptoPriceInUSD) + (merchantsCryptoAd.margin * (cryptoPriceInUSD)*buyOrder.cryptoAmount)
 
         val updateEscrowWallet = BuyEscrowWallet(
             orderId = orderId,
@@ -69,12 +59,14 @@ suspend fun createBuyOrder(
             cryptoName = merchantsCryptoAd.cryptoName,
             cryptoSymbol = buyOrder.cryptoSymbol,
             cryptoAmount = buyOrder.cryptoAmount,
-            debitedAt = Utils.currentTimeStamp()
+            escrowState = EscrowState.PENDING,
+            debitedAt = Utils.currentTimeStamp(),
+            expiresAt = System.currentTimeMillis() + (60000*1)
         )
 
         val debitCryptoAd = try {
-            async {
-                merchantCryptoBuyAd
+            async(Dispatchers.IO) {
+                Entries.merchantCryptoBuyAd
                     .updateOne(CreateCryptoBuyAd::id eq buyOrder.adId, merchantAssets)
                     .wasAcknowledged()
             }
@@ -84,8 +76,8 @@ suspend fun createBuyOrder(
         }
 
         val creditEscrowWallet = try {
-            async {
-                buyEscrowWallet
+            async(Dispatchers.IO) {
+                Entries.buyEscrowWallet
                     .insertOne(updateEscrowWallet)
                     .wasAcknowledged()
             }
@@ -103,12 +95,11 @@ suspend fun createBuyOrder(
             cryptoAmount = buyOrder.cryptoAmount,
             amountInKes = transferAmountByBuyer,
             orderStatus = OrderStatus.PENDING,
-            createdAt = Utils.currentTimeStamp(),
-            expiresAt = Utils.currentTimeStampPlus(durationInMills = (15 * 60 * 1000))
+            expiresAt = buyOrder.expiresAt
         )
         val createBuyOrder = try {
-            async {
-                cryptoBuyOrders.insertOne(createOrder).wasAcknowledged()
+            async(Dispatchers.IO) {
+                Entries.cryptoBuyOrders.insertOne(createOrder).wasAcknowledged()
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -131,7 +122,7 @@ suspend fun createBuyOrder(
             notificationType = NotificationType.ORDER_HAS_BEEN_PLACED,
             notificationMessage = notificationsMessage
         )
-        launch {
+        launch(Dispatchers.IO) {
             kafkaProducer(topic = KafkaConfig.EMAIL_NOTIFICATIONS, message = gson.toJson(emailNotificationMessage))
         }
 
@@ -163,12 +154,13 @@ suspend fun main() {
         createBuyOrder(
             buyOrder = BuyOrder(
                 orderId = "8976534",
-                adId = "6515773546c93e4628fcceef",
+                adId = "6536eac4786c8d3f2151f8ed",
                 buyersEmail = "dev.pasaka@gmail.com",
                 cryptoName = "Tether",
-                cryptoSymbol = "USDT",
-                cryptoAmount = 50.0,
-                amountInKes = 7400.0
+                cryptoSymbol = "ADA",
+                cryptoAmount = 40.0,
+                amountInKes = 7400.0,
+                expiresAt = System.currentTimeMillis() + (60000*15).toLong()
             )
         )
     )

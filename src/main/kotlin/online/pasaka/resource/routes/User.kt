@@ -23,7 +23,7 @@ import online.pasaka.model.user.User
 import online.pasaka.model.user.portfolio.LivePortfolio
 import java.util.*
 import online.pasaka.responses.*
-import online.pasaka.service.UserServices
+import online.pasaka.service.userServices.UserServices
 import online.pasaka.utils.Utils
 
 fun Route.userRegistration() {

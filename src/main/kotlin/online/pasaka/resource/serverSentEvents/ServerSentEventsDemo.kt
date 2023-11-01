@@ -1,54 +1,61 @@
 package online.pasaka.resource.serverSentEvents
 
+import com.google.gson.Gson
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import online.pasaka.database.Entries
+import online.pasaka.model.order.BuyOrder
+import online.pasaka.model.order.OrderStatus
+import online.pasaka.threads.Threads
+import org.litote.kmongo.eq
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicLong
 
-fun Route.sentEvents(){
-    get("/sse"){
-        call.respondSseEvents()
-    }
-}
+fun Route.sentEvents() {
+    val gson = Gson()
+    authenticate("auth-jwt") {
+        get("/sse") {
+            coroutineScope{
+               launch {
+                   val email = call.principal<JWTPrincipal>()
+                       ?.payload
+                       ?.getClaim("email")
+                       .toString()
+                       .removeSurrounding("\"")
 
-suspend fun ApplicationCall.respondSseEvents() {
-    val eventChannel = produceEvents() // Implement this function to produce your SSE events
+                   call.respondTextWriter(contentType = ContentType.Text.EventStream) {
 
-    respondTextWriter(contentType = ContentType.Text.EventStream) {
-        try {
-
-//            eventChannel.collect { event ->
-//                // Send SSE event to the client
-//                append("data: ${event}\n\n")
-//                flush()
-//            }
-
-            while (true){
-                delay(1000)
-                append((100..11100).random().toString())
-                flush()
+                       while (true) {
+                           val buyersOrders = try {
+                               Entries.cryptoBuyOrders.find(BuyOrder::buyersEmail eq email).toList()
+                           }catch (e:Exception){
+                               e.printStackTrace()
+                               null
+                           } ?: continue
+                           val event = gson.toJson(buyersOrders)
+                           write("data: $event\n\n")
+                           flush()
+                           delay(10000)
+                       }
+                   }
+               }
             }
-        } catch (e: ClosedReceiveChannelException) {
-            // Channel is closed, handle it as needed
-        } finally {
+
 
         }
     }
 }
 
-suspend fun produceEvents(): Flow<Int> = flow {
-    while (true) {
-        // Generate an SSE event
-        val event = (100..10000).random()
-
-        // Emit the event to the channel
-        emit(event)
-
-        // Delay between events (optional)
-        delay(1000)
-    }
+fun main(){
+    println(
+        Entries.cryptoBuyOrders.find(BuyOrder::buyersEmail eq "dev.pasaka@gmail.com").toList()
+    )
 }
