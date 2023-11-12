@@ -6,6 +6,7 @@ import io.ktor.server.response.*
 import io.ktor.server.application.*
 import online.pasaka.resource.routes.*
 import online.pasaka.resource.serverSentEvents.sentEvents
+import online.pasaka.resource.websokets.merchantLastSeen
 
 fun Application.configureRouting() {
     routing {
@@ -37,6 +38,10 @@ fun Application.configureRouting() {
         cryptoBuyOrder()
         buyerTransferredFunds()
         cancelBuyOrder()
-        releaseCrypto()
+        merchantReleaseCrypto()
+        cryptoSellOrder()
+        merchantTransferredFunds()
+        cancelSellOrder()
+        sellerReleaseCrypto()
     }
 }

@@ -15,13 +15,8 @@ suspend fun startConsumers() {
     coroutineScope.launch {
         launch { merchantTopUpConsumer() }
         launch { merchantWithdrawalConsumer() }
-        launch {
-            cryptoBuyOrderConsumer()
-            cryptoBuyOrderConsumer()
-        }
-        launch {
-            emailNotificationConsumer()
-            emailNotificationConsumer()
-        }
+        launch { buyOrderConsumer() }
+        launch { sellOrderConsumer() }
+        launch { EmailNotificationConsumer() }
     }
 }

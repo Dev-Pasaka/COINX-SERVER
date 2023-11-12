@@ -1,71 +1,68 @@
-package online.pasaka.service.buyOrderService
+package online.pasaka.service.sellOrderService
 
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import online.pasaka.Kafka.models.messages.ReleaseCrypto
 import online.pasaka.Kafka.models.Notification
 import online.pasaka.Kafka.models.NotificationType
+import online.pasaka.Kafka.models.messages.ReleaseCrypto
 import online.pasaka.Kafka.producers.kafkaProducer
 import online.pasaka.config.KafkaConfig
 import online.pasaka.database.Entries
-import online.pasaka.model.escrow.BuyEscrowWallet
 import online.pasaka.model.escrow.EscrowState
+import online.pasaka.model.escrow.SellEscrowWallet
 import online.pasaka.model.merchant.Merchant
-import online.pasaka.model.order.BuyOrder
+import online.pasaka.model.merchant.wallet.MerchantWallet
 import online.pasaka.model.order.OrderStatus
-import online.pasaka.model.wallet.Wallet
+import online.pasaka.model.order.SellOrder
 import online.pasaka.model.wallet.crypto.CryptoCoin
 import online.pasaka.responses.DefaultResponse
 import org.litote.kmongo.eq
 import org.litote.kmongo.findOne
 import org.litote.kmongo.updateOne
 
-
-suspend fun merchantReleaseCrypto(buyOrderID: String): DefaultResponse {
+suspend fun sellerReleaseCrypto(sellOrderId: String): DefaultResponse {
     val gson = Gson()
-
-
     return coroutineScope {
 
-        /** Get order status*/
+        /** Get order status */
         val orderStatus = try {
-            Entries.cryptoBuyOrders.findOne(BuyOrder::orderId eq buyOrderID)
+            Entries.sellOrders.findOne(SellOrder::orderId eq sellOrderId)
         } catch (e: Exception) {
             e.printStackTrace()
             null
-        }
-            ?: return@coroutineScope DefaultResponse("Order not found kindly check with customer service for more information")
+        } ?: return@coroutineScope DefaultResponse("Order not found kindly check with customer service for more information")
+
         when (orderStatus.orderStatus) {
+            OrderStatus.PENDING -> return@coroutineScope DefaultResponse( "This Order is in processing kindly wait for merchant to transfer funds before releasing.")
             OrderStatus.CANCELLED -> return@coroutineScope DefaultResponse("This order is already cancelled")
             OrderStatus.EXPIRED -> return@coroutineScope DefaultResponse("This order has expired kindly check with customer service for more information")
-            OrderStatus.PENDING -> return@coroutineScope DefaultResponse( "This Order is in processing kindly wait for buyer to transfer funds before releasing.")
             OrderStatus.COMPLETED -> return@coroutineScope DefaultResponse("This Order is already completed. kindly check with customer service for more information")
-            else -> {}
+            else -> {  }
         }
 
         /** Get escrow wallet data */
         val getEscrowWalletData = try {
-            Entries.buyEscrowWallet.findOne(BuyEscrowWallet::orderId eq buyOrderID)
+            Entries.sellEscrowWallet.findOne(SellEscrowWallet::orderId eq sellOrderId)
         } catch (e: Exception) {
             e.printStackTrace()
             null
-        } ?: return@coroutineScope DefaultResponse(message = "Crypto buy order does not exist in escrow wallet")
+        } ?: return@coroutineScope DefaultResponse(message = "Crypto sell order does not exist in escrow wallet")
 
-        /** Get buyers wallet and update cryptoAmount*/
-        val getBuyersWalletAssets = try {
-            Entries.buyersWallet.findOne(Wallet::walletId eq getEscrowWalletData.buyerEmail)
+        /** Get merchant's wallet and update cryptoAmount*/
+        val getMerchantsWalletAssets = try {
+            Entries.dbMerchantWallet.findOne(MerchantWallet::walletId eq getEscrowWalletData.merchantEmail)
         } catch (e: Exception) {
             e.printStackTrace()
             null
         } ?: return@coroutineScope DefaultResponse("An expected error has occurred")
 
-        println("previous buyers assets: ${getBuyersWalletAssets.assets}")
+        println("previous buyers assets: ${getMerchantsWalletAssets.assets}")
 
-        val updateBuyersAssets = mutableListOf<CryptoCoin>()
-        getBuyersWalletAssets.assets.forEach {
+        val updatedMerchantsAssets = mutableListOf<CryptoCoin>()
+        getMerchantsWalletAssets.assets.forEach {
             if (it.symbol == getEscrowWalletData.cryptoSymbol) {
                 val updatedAmount = it.amount + getEscrowWalletData.cryptoAmount
                 val updatedCryptoCoin = CryptoCoin(
@@ -73,32 +70,32 @@ suspend fun merchantReleaseCrypto(buyOrderID: String): DefaultResponse {
                     amount = updatedAmount,
                     name = it.name
                 )
-                updateBuyersAssets.add(updatedCryptoCoin)
+                updatedMerchantsAssets.add(updatedCryptoCoin)
             } else {
-                updateBuyersAssets.add(it)
+                updatedMerchantsAssets.add(it)
             }
         }
 
 
-        /**Now add the escrow wallet data if it doesn't exist in the original assets*/
-        val escrowAsset = updateBuyersAssets.find { it.symbol == getEscrowWalletData.cryptoSymbol }
+        /** Now add the escrow wallet data if it doesn't exist in the original assets*/
+        val escrowAsset = updatedMerchantsAssets.find { it.symbol == getEscrowWalletData.cryptoSymbol }
         if (escrowAsset == null) {
             val escrowCryptoCoin = CryptoCoin(
                 symbol = getEscrowWalletData.cryptoSymbol,
                 amount = getEscrowWalletData.cryptoAmount,
                 name = getEscrowWalletData.cryptoName
             )
-            updateBuyersAssets.add(escrowCryptoCoin)
-            updateBuyersAssets.addAll(getBuyersWalletAssets.assets)
+            updatedMerchantsAssets.add(escrowCryptoCoin)
+            updatedMerchantsAssets.addAll(getMerchantsWalletAssets.assets)
         }
 
 
         /** Debit amount from escrow wallet */
         val debitEscrowWallet = try {
             async(Dispatchers.IO) {
-                Entries.buyEscrowWallet.updateOne(
-                    BuyEscrowWallet::buyerEmail eq getEscrowWalletData.buyerEmail,
-                    getEscrowWalletData.copy(cryptoAmount = 0.0, escrowState = EscrowState.CRYPTO_RELEASED_TO_BUYER)
+                Entries.sellEscrowWallet.updateOne(
+                    SellEscrowWallet::orderId eq getEscrowWalletData.orderId,
+                    getEscrowWalletData.copy(cryptoAmount = 0.0, escrowState = EscrowState.CRYPTO_RELEASED_TO_MERCHANT)
                 ).wasAcknowledged()
             }
         } catch (e: Exception) {
@@ -106,12 +103,12 @@ suspend fun merchantReleaseCrypto(buyOrderID: String): DefaultResponse {
             null
         }
 
-        /** Credit amount to Buyers Wallet */
+        /** Credit amount to Merchants Wallet */
         val creditAmountToBuyersWallet = try {
             async(Dispatchers.IO) {
-                Entries.buyersWallet.updateOne(
-                    Wallet::walletId eq getEscrowWalletData.buyerEmail,
-                    getBuyersWalletAssets.copy(assets = updateBuyersAssets)
+                Entries.dbMerchantWallet.updateOne(
+                    MerchantWallet::walletId eq getEscrowWalletData.sellersEmail,
+                    getMerchantsWalletAssets.copy(assets = updatedMerchantsAssets)
                 ).wasAcknowledged()
             }
         } catch (e: Exception) {
@@ -133,26 +130,22 @@ suspend fun merchantReleaseCrypto(buyOrderID: String): DefaultResponse {
             if (getMerchantOrderStats != null){
                 Entries.dbMerchant.updateOne(
                     Merchant::email eq getEscrowWalletData.merchantEmail,
-                    getMerchantOrderStats.copy(
-                        ordersCompleted = getMerchantOrderStats.ordersCompleted + 1,
-                    )
-
+                    getMerchantOrderStats.copy(ordersCompleted = getMerchantOrderStats.ordersCompleted + 1)
 
                 )
             }
         }
-
-
 
         val debitEscrowWalletResult = debitEscrowWallet?.await()
         val creditAmountToBuyersWalletResult = creditAmountToBuyersWallet?.await()
 
         if (debitEscrowWalletResult == true && creditAmountToBuyersWalletResult == true) {
 
-            println("News users assets: $updateBuyersAssets")
-            /** Notify the buyer that crypto has been deposited to his wallet */
+            println("News users assets: $updatedMerchantsAssets")
+
+            /** Notify the merchant that crypto has been deposited to his wallet */
             val notification = Notification(
-                notificationType = NotificationType.BUY_ORDER_COMPLETED,
+                notificationType = NotificationType.SELL_ORDER_COMPLETED,
                 notificationMessage = ReleaseCrypto(
                     title = "Deposit Was Successful",
                     orderId = getEscrowWalletData.orderId,
@@ -167,25 +160,25 @@ suspend fun merchantReleaseCrypto(buyOrderID: String): DefaultResponse {
             }
             launch(Dispatchers.IO) {
                 val updateOrderStatus = async {
-                    Entries.cryptoBuyOrders.findOne(BuyOrder::orderId eq getEscrowWalletData.orderId)
+                    Entries.sellOrders.findOne(SellOrder::orderId eq getEscrowWalletData.orderId)
                 }.await()?.copy(orderStatus = OrderStatus.COMPLETED)
                 if (updateOrderStatus != null) {
-                    Entries.cryptoBuyOrders.updateOne(BuyOrder::orderId eq getEscrowWalletData.orderId, updateOrderStatus)
+                    Entries.sellOrders.updateOne(SellOrder::orderId eq getEscrowWalletData.orderId, updateOrderStatus)
                         .wasAcknowledged()
                 }
             }
             return@coroutineScope DefaultResponse(status = true, message = "Crypto assets have been released to buyer")
 
         } else {
-            merchantReleaseCrypto(buyOrderID = buyOrderID)
+            sellerReleaseCrypto(sellOrderId = sellOrderId)
         }
 
 
     }
 }
 
-suspend fun main() {
+suspend fun main(){
     println(
-        merchantReleaseCrypto(buyOrderID = "653b89a4935cfd4d8e5a0058")
+        sellerReleaseCrypto(sellOrderId = "654a3b2f2520ef0e5d86826a")
     )
 }

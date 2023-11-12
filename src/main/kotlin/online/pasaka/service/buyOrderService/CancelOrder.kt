@@ -8,20 +8,16 @@ import online.pasaka.Kafka.models.NotificationType
 import online.pasaka.Kafka.models.messages.OrderCancellation
 import online.pasaka.Kafka.producers.kafkaProducer
 import online.pasaka.config.KafkaConfig
-import online.pasaka.database.DatabaseConnection
 import online.pasaka.database.Entries
-import online.pasaka.model.cryptoAds.CreateCryptoBuyAd
-import online.pasaka.model.cryptoAds.CryptoBuyAdOrder
+import online.pasaka.model.cryptoAds.BuyAd
 import online.pasaka.model.escrow.BuyEscrowWallet
 import online.pasaka.model.order.BuyOrder
 import online.pasaka.model.order.OrderStatus
 import online.pasaka.responses.DefaultResponse
 import org.litote.kmongo.eq
 import org.litote.kmongo.findOne
-import org.litote.kmongo.getCollection
-import kotlin.system.exitProcess
 
-suspend fun cancelOrder(buyOrderId: String): DefaultResponse {
+suspend fun cancelBuyOrder(buyOrderId: String): DefaultResponse {
     val gson = Gson()
 
     return coroutineScope {
@@ -53,7 +49,7 @@ suspend fun cancelOrder(buyOrderId: String): DefaultResponse {
         } ?: return@coroutineScope DefaultResponse(message = "An expected error has occurred")
 
         val getMerchantCryptoAd = try {
-            val result = Entries.cryptoBuyAd.findOne(CreateCryptoBuyAd::id eq doesBuyOrderExists.adId)
+            val result = Entries.buyAd.findOne(BuyAd::id eq doesBuyOrderExists.adId)
             result
         } catch (e: Exception) {
             e.printStackTrace()
@@ -62,8 +58,8 @@ suspend fun cancelOrder(buyOrderId: String): DefaultResponse {
 
         val creditMerchantCryptoAd = try {
             val updateAmount = getMerchantCryptoAd.totalAmount + getMerchantsWalletFromEscrow.cryptoAmount
-            Entries.cryptoBuyAd.updateOne(
-                CreateCryptoBuyAd::id eq doesBuyOrderExists.adId,
+            Entries.buyAd.updateOne(
+                BuyAd::id eq doesBuyOrderExists.adId,
                 getMerchantCryptoAd.copy(totalAmount = updateAmount)
             ).wasAcknowledged()
         } catch (e: Exception) {
@@ -79,7 +75,7 @@ suspend fun cancelOrder(buyOrderId: String): DefaultResponse {
         } ?: return@coroutineScope DefaultResponse(message = "An expected error has occurred")
 
         val notificationMessage = Notification(
-            notificationType = NotificationType.CANCELLED,
+            notificationType = NotificationType.BUY_ORDER_CANCELLED,
             notificationMessage = OrderCancellation(
                 orderId = doesBuyOrderExists.orderId,
                 recipientEmail = getMerchantsWalletFromEscrow.merchantEmail,
@@ -109,6 +105,6 @@ suspend fun cancelOrder(buyOrderId: String): DefaultResponse {
 
 suspend fun main(){
     println(
-        cancelOrder(buyOrderId = "65383762812e780acb70ee5a")
+        cancelBuyOrder(buyOrderId = "65383762812e780acb70ee5a")
     )
 }

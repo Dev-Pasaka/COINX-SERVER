@@ -14,10 +14,10 @@ import kotlinx.coroutines.launch
 import online.pasaka.Kafka.producers.merchantTopUpProducer
 import online.pasaka.Kafka.producers.merchantWithdrawalProducer
 import online.pasaka.config.KafkaConfig
-import online.pasaka.model.cryptoAds.CryptoBuyAdOrder
+import online.pasaka.dto.cryptoAds.BuyAdDto
 import online.pasaka.dto.CryptoBuyAdOrderDto
 import online.pasaka.dto.CryptoSellAdOrderDto
-import online.pasaka.model.cryptoAds.CryptoSellAdOrder
+import online.pasaka.dto.cryptoAds.SellAdDto
 import online.pasaka.model.merchant.wallet.MerchantCryptoSwap
 import online.pasaka.model.merchant.wallet.crypto.CryptoSwap
 import online.pasaka.model.user.PaymentMethod
@@ -26,6 +26,8 @@ import online.pasaka.responses.MerchantFloatTopUpTransactionsHistoryResponse
 import online.pasaka.responses.MerchantFloatWithdrawalHistoryResponse
 import online.pasaka.responses.MerchantRegistrationResponse
 import online.pasaka.service.merchantServices.MerchantServices
+
+
 
 
 fun Route.becomeMerchant() {
@@ -396,7 +398,7 @@ fun Route.createBuyAd() {
 
                 val result = async {
                     try {
-                        MerchantServices.createBuyAd(cryptoBuyAdOrder = CryptoBuyAdOrder(
+                        MerchantServices.createBuyAd(cryptoBuyAdOrder = BuyAdDto(
                             email = email,
                             cryptoName = cryptoBuyAdOrder.cryptoName,
                             cryptoSymbol = cryptoBuyAdOrder.cryptoSymbol,
@@ -404,7 +406,8 @@ fun Route.createBuyAd() {
                             margin = cryptoBuyAdOrder.margin,
                             minLimit = cryptoBuyAdOrder.minLimit,
                             maxLimit = cryptoBuyAdOrder.maxLimit
-                        ))
+                        )
+                        )
                     } catch (e: Exception) {
                         null
                     }
@@ -436,7 +439,7 @@ fun Route.createSellAd() {
 
                 val result = async {
                     try {
-                        MerchantServices.createSellAd(cryptoSellAdOrder = CryptoSellAdOrder(
+                        MerchantServices.createSellAd(cryptoSellAdOrder = SellAdDto(
                             email = email,
                             cryptoName = cryptoBuyAdOrder.cryptoName,
                             cryptoSymbol = cryptoBuyAdOrder.cryptoSymbol,
@@ -444,7 +447,8 @@ fun Route.createSellAd() {
                             margin = cryptoBuyAdOrder.margin,
                             minLimit = cryptoBuyAdOrder.minLimit,
                             maxLimit = cryptoBuyAdOrder.maxLimit
-                        ))
+                        )
+                        )
                     } catch (e: Exception) {
                         null
                     }

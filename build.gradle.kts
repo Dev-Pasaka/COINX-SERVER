@@ -69,10 +69,9 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:$logback_version")
     implementation("io.ktor:ktor-server-call-logging:$ktor_version")
     implementation("org.slf4j:slf4j-api:1.7.33")
-    implementation("ch.qos.logback:logback-classic:1.2.6")
 
     //Kafka
-    implementation("com.github.gAmUssA:ktor-kafka:main-SNAPSHOT")
+    //implementation("com.github.gAmUssA:ktor-kafka:main-SNAPSHOT")
     implementation("org.apache.kafka:kafka-streams:2.7.0")
     implementation("io.confluent:kafka-json-schema-serializer:$confluent_version")
     implementation("io.confluent:kafka-streams-json-schema-serde:$confluent_version") {
@@ -83,10 +82,6 @@ dependencies {
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktor_version")
     implementation("io.ktor:ktor-server-websockets:$ktor_version")
 
-    //Google guava library
-    implementation("com.google.guava:guava:30.1-jre")
-    // https://mvnrepository.com/artifact/com.github.jkutner/env-keystore
-    implementation("com.github.jkutner:env-keystore:0.1.3")
 
     // https://mvnrepository.com/artifact/redis.clients/jedis
     implementation("redis.clients:jedis:5.0.1")

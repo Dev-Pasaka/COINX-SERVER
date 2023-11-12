@@ -2,15 +2,13 @@ package online.pasaka.service.mailService.mailTemplate
 
 import online.pasaka.utils.Utils
 
-fun buyOrderCancellation(
-    title: String = "P2P Order Confirmation",
+fun sellerReleasedCryptoTemplate(
+    title: String = "Deposit Was Successful",
     iconUrl: String = "https://play-lh.googleusercontent.com/Yg7Lo7wiW-iLzcnaarj7nm5-hQjl7J9eTgEupxKzC79Vq8qyRgTBnxeWDap-yC8kHoE=w240-h480-rw",
-    recipientName: String? = null,
     orderID: String? = null,
     cryptoName: String? = null,
     cryptoSymbol: String? = null,
     cryptoAmount: Double? = null,
-    amountToReceive: Double? = null,
 ) = """
         <!DOCTYPE html>
         <html lang="en">
@@ -29,8 +27,7 @@ fun buyOrderCancellation(
                 <tr>
                     <td align="center" bgcolor="#ffffff" style="padding: 20px;">
                         <h1>$title</h1>
-                        <p>Dear $recipientName,</p>
-                        <p>Buyer has cancelled the order. Kindly verify the order cancellation and report anything that seems suspicious</p>
+                        <p>Crypto released. Your sell crypto order has been completed and assets deposited in your wallet</p>
                         <table style="width: 100%;">
                             <tr>
                                 <td>Order ID:</td>
@@ -45,8 +42,7 @@ fun buyOrderCancellation(
                         <table style="width: 100%; border: 1px solid #e0e0e0;">
                             <tr>
                                 <th>Crypto name: $cryptoName ($cryptoSymbol)</th>
-                                <th>Amount: $cryptoAmount $cryptoSymbol</th>
-                                <th>Amount to receive: ${Utils.formatCurrency(amountToReceive ?: 0.0, currencyCode = "KES")}</th>
+                                <th>Crypto Amount: $cryptoAmount $cryptoSymbol</th>
                             </tr>
                         </table>
                         <p>If you have any questions or need further assistance, please feel free to contact our customer support team at support@coinx.co.ke.</p>
@@ -63,6 +59,4 @@ fun buyOrderCancellation(
             </table>
         </body>
         </html>
-
-    ""${'"'}
 """.trimIndent()

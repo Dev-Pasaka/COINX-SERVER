@@ -1,9 +1,0 @@
-package online.pasaka.Kafka.models
-
-enum class EmailNotificationType {
-    BUY_ORDER_CONFIRMATION,
-    SELL_ORDER_CONFIRMATION,
-    NEWS_LETTER_NOTIFICATION,
-    ACCOUNT_CREATION_CONFIRMATION,
-    PASSWORD_RESET_NOTIFICATION,
-}

@@ -7,19 +7,18 @@ import online.pasaka.Kafka.models.NotificationType
 import online.pasaka.Kafka.models.messages.OrderExpired
 import online.pasaka.Kafka.producers.kafkaProducer
 import online.pasaka.config.KafkaConfig
-import online.pasaka.database.DatabaseConnection
 import online.pasaka.database.Entries
-import online.pasaka.model.cryptoAds.CreateCryptoBuyAd
+import online.pasaka.model.cryptoAds.BuyAd
 import online.pasaka.model.escrow.BuyEscrowWallet
+import online.pasaka.model.escrow.EscrowState
 import online.pasaka.model.order.BuyOrder
 import online.pasaka.model.order.OrderStatus
 import online.pasaka.responses.DefaultResponse
-import online.pasaka.service.mailService.sendEmail
 import online.pasaka.threads.Threads
 import org.litote.kmongo.*
 import java.util.concurrent.Executors
 
-object ExpiredOrders {
+object ExpireBuyOrders {
     private val customDispatcher = Executors.newSingleThreadExecutor { r ->
         Thread(r, Threads.TASK_SCHEDULERS)
     }.asCoroutineDispatcher()
@@ -45,7 +44,7 @@ object ExpiredOrders {
 
                 expiredOrders.forEach {
                     val merchantInfo = try {
-                        Entries.merchantCryptoBuyAd.findOne( CreateCryptoBuyAd::id eq it.adId)
+                        Entries.buyAd.findOne( BuyAd::id eq it.adId)
                     } catch (e: Exception) {
                         e.printStackTrace()
                         null
@@ -62,8 +61,9 @@ object ExpiredOrders {
                             transferMoneyBackFromEscrowToMerchant(orderId = it.orderId, adId = it.adId)
                         }
                         val notification = Notification(
-                            notificationType = NotificationType.EXPIRED,
+                            notificationType = NotificationType.BUY_ORDER_EXPIRED,
                             notificationMessage = OrderExpired(
+                                title = "Buy Order has expired",
                                 orderId = it.orderId,
                                 recipientName= merchantInfo?.merchantUsername!!,
                                 recipientEmail = merchantInfo.email,
@@ -74,7 +74,7 @@ object ExpiredOrders {
                             )
                         )
                         launch(Dispatchers.IO) {
-                            kafkaProducer(topic = KafkaConfig.EMAIL_NOTIFICATIONS, gson.toJson(notification))
+                           kafkaProducer(topic = KafkaConfig.EMAIL_NOTIFICATIONS, gson.toJson(notification))
                         }
 
                         println(it)
@@ -103,11 +103,11 @@ object ExpiredOrders {
                 }
                     ?: return@async DefaultResponse(message = "Order not found in escrow wallet. Kindly Contact support for more information")
 
-                /** Update merchant's assets in escrow to zero */
+                /** Update merchant's assets in escrow to zero and Escrow state to Expired */
                 val updateEscrowWallet = try {
                     Entries.buyEscrowWallet.updateOne(
                         BuyEscrowWallet::orderId eq orderId,
-                        merchantCryptoAssetsInEscrow.copy(cryptoAmount = 0.0)
+                        merchantCryptoAssetsInEscrow.copy(cryptoAmount = 0.0, escrowState = EscrowState.EXPIRED)
                     ).wasAcknowledged()
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -117,7 +117,7 @@ object ExpiredOrders {
 
                 /** Get merchant buy Crypto Ad */
                 val getMerchantAd = try {
-                    Entries.merchantCryptoBuyAd.findOne(CreateCryptoBuyAd::id eq adId)
+                    Entries.buyAd.findOne(BuyAd::id eq adId)
                 } catch (e: Exception) {
                     e.printStackTrace()
                     null
@@ -126,8 +126,8 @@ object ExpiredOrders {
 
                 /** Credit assets from merchant's escrow wallet to his Crypto Ad */
                 val creditCryptoBuyAd = try {
-                    Entries.merchantCryptoBuyAd.updateOne(
-                        CreateCryptoBuyAd::id eq adId, getMerchantAd.copy(
+                    Entries.buyAd.updateOne(
+                        BuyAd::id eq adId, getMerchantAd.copy(
                             totalAmount = getMerchantAd.totalAmount + merchantCryptoAssetsInEscrow.cryptoAmount
                         )
                     ).wasAcknowledged()

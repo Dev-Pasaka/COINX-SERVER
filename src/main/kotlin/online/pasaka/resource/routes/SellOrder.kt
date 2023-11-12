@@ -11,20 +11,18 @@ import io.ktor.server.routing.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import online.pasaka.Kafka.models.messages.BuyOrderMessage
+import online.pasaka.Kafka.models.messages.SellOrderMessage
 import online.pasaka.Kafka.producers.kafkaProducer
 import online.pasaka.config.KafkaConfig
-import online.pasaka.dto.BuyOrderDto
+import online.pasaka.dto.SellOrderDto
 import online.pasaka.responses.DefaultResponse
-import online.pasaka.service.buyOrderService.buyerHasTransferredFundsToMerchant
-import online.pasaka.service.buyOrderService.cancelBuyOrder
-import online.pasaka.service.buyOrderService.merchantReleaseCrypto
-
-
-fun Route.cryptoBuyOrder() {
+import online.pasaka.service.sellOrderService.merchantHasTransferredFunds
+import online.pasaka.service.sellOrderService.cancelSellOrder
+import online.pasaka.service.sellOrderService.sellerReleaseCrypto
+fun Route.cryptoSellOrder() {
     authenticate("auth-jwt") {
 
-        post("/cryptoBuyOrder") {
+        post("/cryptoSellOrder") {
 
             coroutineScope {
 
@@ -34,20 +32,19 @@ fun Route.cryptoBuyOrder() {
                     .toString()
                     .removeSurrounding("\"")
 
-                val buyOrder = call.receive<BuyOrderDto>()
-                val buyOrderMessage = BuyOrderMessage(
-                    adId = buyOrder.adId,
-                    buyersEmail = email,
-                    cryptoName = buyOrder.cryptoName,
-                    cryptoSymbol = buyOrder.cryptoSymbol,
-                    cryptoAmount = buyOrder.cryptoAmount,
+                val sellOrder = call.receive<SellOrderDto>()
+                val sellOrderMessage = SellOrderMessage(
+                    adId = sellOrder.adId,
+                    sellersEmail = email,
+                    cryptoName = sellOrder.cryptoName,
+                    cryptoSymbol = sellOrder.cryptoSymbol,
+                    cryptoAmount = sellOrder.cryptoAmount,
                 )
                 val gson = Gson()
-                val buyOrderJsonString = gson.toJson(buyOrderMessage)
+                val sellOrderJsonString = gson.toJson(sellOrderMessage)
 
                 try {
-                    launch { kafkaProducer(topic = KafkaConfig.CRYPTO_BUY_ORDERS, message = buyOrderJsonString) }
-
+                    launch { kafkaProducer(topic = KafkaConfig.CRYPTO_SELL_ORDERS, message = sellOrderJsonString) }
                 } catch (e: Exception) {
                     e.printStackTrace()
                     null
@@ -59,12 +56,11 @@ fun Route.cryptoBuyOrder() {
                     )
                 )
 
-
                 call.respond(
                     status = HttpStatusCode.OK,
                     message = DefaultResponse(
                         status = false,
-                        message = "Your buy order has been placed successfully "
+                        message = "Your sell order has been placed successfully "
                     )
                 )
 
@@ -77,14 +73,39 @@ fun Route.cryptoBuyOrder() {
     }
 
 }
-fun Route.buyerTransferredFunds() {
+fun Route.merchantTransferredFunds() {
 
     authenticate("auth-jwt") {
-        get("/buyerTransferredFunds/{id?}") {
+        get("/merchantTransferredFunds/{id?}") {
             coroutineScope {
                 val orderId = call.parameters["id"] ?: ""
                 val result = try {
-                    async { buyerHasTransferredFundsToMerchant(buyOrderID = orderId) }.await()
+                    async { merchantHasTransferredFunds(sellOrderID = orderId) }.await()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    null
+                } ?: call.respond(
+                    status = HttpStatusCode.OK,
+                    message = "An expected error has occurred, check you parameters and please try again."
+                )
+
+                call.respond(
+                    status = HttpStatusCode.OK,
+                    message = result
+                )
+            }
+        }
+    }
+
+}
+fun Route.cancelSellOrder() {
+    authenticate("auth-jwt") {
+        get("/cancelSellOrder/{id?}") {
+            coroutineScope {
+
+                val sellOrderId = call.parameters["id"] ?: ""
+                val result = try {
+                    async { cancelSellOrder(sellOrderId = sellOrderId ) }.await()
                 } catch (e: Exception) {
                     e.printStackTrace()
                     null
@@ -100,40 +121,15 @@ fun Route.buyerTransferredFunds() {
             }
         }
     }
-
 }
-fun Route.cancelBuyOrder() {
+fun Route.sellerReleaseCrypto() {
     authenticate("auth-jwt") {
-        get("/cancelBuyOrder/{id?}") {
+        get("/sellerReleaseCrypto/{id?}") {
             coroutineScope {
 
-                val buyOrderId = call.parameters["id"] ?: ""
+                val sellOrderId = call.parameters["id"] ?: ""
                 val result = try {
-                    async { cancelBuyOrder(buyOrderId = buyOrderId) }.await()
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    null
-                } ?: call.respond(
-                    status = HttpStatusCode.OK,
-                    message = "An expected error has occurred please try again."
-                )
-
-                call.respond(
-                    status = HttpStatusCode.OK,
-                    message = result
-                )
-            }
-        }
-    }
-}
-fun Route.merchantReleaseCrypto() {
-    authenticate("auth-jwt") {
-        get("/merchantReleaseCrypto/{id?}") {
-            coroutineScope {
-
-                val buyOrderId = call.parameters["id"] ?: ""
-                val result = try {
-                    async { merchantReleaseCrypto(buyOrderID = buyOrderId) }.await()
+                    async {sellerReleaseCrypto(sellOrderId = sellOrderId) }.await()
                 } catch (e: Exception) {
                     e.printStackTrace()
                     null

@@ -6,7 +6,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import online.pasaka.Kafka.models.Notification
 import online.pasaka.Kafka.models.NotificationType
-import online.pasaka.Kafka.models.messages.MerchantReleaseCryptoAssets
+import online.pasaka.Kafka.models.messages.ReleaseCrypto
 import online.pasaka.Kafka.producers.kafkaProducer
 import online.pasaka.config.KafkaConfig
 import online.pasaka.database.Entries
@@ -16,17 +16,16 @@ import online.pasaka.model.order.BuyOrder
 import online.pasaka.model.order.OrderStatus
 import online.pasaka.model.wallet.Wallet
 import online.pasaka.model.wallet.crypto.CryptoCoin
-import online.pasaka.scheduleTasks.orderStatus.ExpiredOrders
+import online.pasaka.scheduleTasks.orderStatus.ExpireBuyOrders
 import org.litote.kmongo.*
-import kotlin.system.exitProcess
 
-object AutoRelease {
+object AutoReleaseBuyOrders {
     suspend fun autoReleaseBuyOrders() {
         val gson = Gson()
 
         while (true) {
 
-            ExpiredOrders.coroutineScope.launch {
+            ExpireBuyOrders.coroutineScope.launch {
 
                 /** Get Orders in escrow wallet that merchant have not released to the buyer and have no conflicts  */
                 val expiredEscrowBuyOrders = Entries.buyEscrowWallet.find(
@@ -38,11 +37,12 @@ object AutoRelease {
 
                         )
                 ).toList()
+                println(expiredEscrowBuyOrders)
 
                 expiredEscrowBuyOrders.forEach {
                     /** Get buyers wallet*/
                     val buyersWallet = try {
-                        Entries.dbTraderWallet.findOne(Wallet::walletId eq it.buyerEmail)
+                        Entries.userWallet.findOne(Wallet::walletId eq it.buyerEmail)
                     } catch (e: Exception) {
                         e.printStackTrace()
                         null
@@ -100,7 +100,7 @@ object AutoRelease {
                         launch(Dispatchers.IO) {
                             val updatedAssets = buyersWallet?.copy(assets = updateBuyersAssets)
                             if (updatedAssets != null) {
-                                Entries.dbTraderWallet.updateOne(
+                                Entries.userWallet.updateOne(
                                     Wallet::walletId eq buyersWallet.walletId,
                                     updatedAssets
                                 )
@@ -113,8 +113,8 @@ object AutoRelease {
                             )
                         }
                         val notification = Notification(
-                            notificationType = NotificationType.BUYER_HAS_TRANSFERRED_FUNDS,
-                            notificationMessage = MerchantReleaseCryptoAssets(
+                            notificationType = NotificationType.BUY_ORDER_COMPLETED,
+                            notificationMessage = ReleaseCrypto(
                                 orderId = it.orderId,
                                 recipientEmail = buyersWallet?.walletId!!,
                                 cryptoName = it.cryptoName,
@@ -123,10 +123,11 @@ object AutoRelease {
                             )
                         )
                         launch(Dispatchers.IO) {
-                            kafkaProducer(topic = KafkaConfig.EMAIL_NOTIFICATIONS, gson.toJson(notification))
+                           kafkaProducer(topic = KafkaConfig.EMAIL_NOTIFICATIONS, gson.toJson(notification))
+                            println("Sent email notification")
                         }
-
                         println(it)
+
                     } catch (e: Exception) {
                         e.printStackTrace()
                     }
@@ -135,6 +136,7 @@ object AutoRelease {
                 }
 
             }
+            println("End of while loop")
             delay(1000)
         }
     }
@@ -142,5 +144,5 @@ object AutoRelease {
 }
 
 suspend fun main() {
-    AutoRelease.autoReleaseBuyOrders()
+    AutoReleaseBuyOrders.autoReleaseBuyOrders()
 }

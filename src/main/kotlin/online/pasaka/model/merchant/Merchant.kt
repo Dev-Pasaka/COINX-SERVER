@@ -13,10 +13,12 @@ data class Merchant(
     val phoneNumber:String,
     val email: String,
     val password: String,
-    val ordersCompleted:Int = 0,
-    val ordersCompletedByPercentage:Int = 0,
+    val ordersMade:Long = 0,
+    val ordersCompleted:Long = 0,
+    val ordersCompletedByPercentage:Double = 0.0,
     var createdAt: String = "",
     val country: String = "Kenya",
     var kycVerification:Boolean = false,
-    var paymentMethod: PaymentMethod? = null
+    var paymentMethod: PaymentMethod? = null,
+    val lastSeen:String = ""
 )

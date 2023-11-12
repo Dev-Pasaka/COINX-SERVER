@@ -1,12 +1,13 @@
 package online.pasaka.service.merchantServices
 
-import online.pasaka.database.DatabaseConnection
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import online.pasaka.cryptoSwapListing.CryptoAssets
 import online.pasaka.database.Entries
+import online.pasaka.dto.cryptoAds.BuyAdDto
+import online.pasaka.dto.cryptoAds.SellAdDto
 import online.pasaka.repository.cryptodata.GetCryptoPrice
 import online.pasaka.rates.CreateCryptoAdsRate
 import online.pasaka.model.cryptoAds.*
@@ -26,7 +27,6 @@ import online.pasaka.responses.SwappingResults
 import online.pasaka.utils.Utils
 import org.litote.kmongo.eq
 import org.litote.kmongo.findOne
-import org.litote.kmongo.getCollection
 import org.litote.kmongo.updateOne
 
 object MerchantServices {
@@ -67,7 +67,6 @@ object MerchantServices {
                 email = doesUserExist.email,
                 password = doesUserExist.password,
                 ordersCompleted = 0,
-                ordersCompletedByPercentage = 0,
                 createdAt = Utils.currentTimeStamp(),
                 country = "Kenya",
                 kycVerification = false,
@@ -96,6 +95,7 @@ object MerchantServices {
             val existingMerchant = async(Dispatchers.IO) {
                 Entries.dbMerchant.findOne(User::email eq email)
             }.await() ?: return@coroutineScope "Merchant does not exist"
+
 
 
             val updatedPaymentMethod = PaymentMethod(
@@ -132,6 +132,8 @@ object MerchantServices {
             val doesUserExist = async {
                 Entries.dbMerchant.findOne(Merchant::email eq email)
             }.await() ?: return@coroutineScope "Merchant does not exist"
+
+            if (!doesUserExist.kycVerification) return@coroutineScope "KYC verification is not complete."
 
             val doesMerchantWalletExist = async {
                 Entries.dbMerchantWallet.findOne(MerchantWallet::walletId eq email)
@@ -183,6 +185,9 @@ object MerchantServices {
             val doesUserExist = async {
                 Entries.dbMerchant.findOne(Merchant::email eq email)
             }.await() ?: return@coroutineScope "Merchant does not exist"
+
+            if (!doesUserExist.kycVerification) return@coroutineScope "KYC verification is not complete."
+
 
             val doesMerchantWalletExist = async {
                 Entries.dbMerchantWallet.findOne(MerchantWallet::walletId eq email)
@@ -252,8 +257,25 @@ object MerchantServices {
         }
     }
 
-    suspend fun createBuyAd(cryptoBuyAdOrder: CryptoBuyAdOrder): CreateBuyAdResult {
+    suspend fun createBuyAd(cryptoBuyAdOrder: BuyAdDto): CreateBuyAdResult {
         return coroutineScope {
+
+            val doesUserExist = async {
+                Entries.dbMerchant.findOne(Merchant::email eq cryptoBuyAdOrder.email)
+            }.await()
+
+            if (doesUserExist?.kycVerification == false)
+            return@coroutineScope CreateBuyAdResult(
+
+                cryptoName = cryptoBuyAdOrder.cryptoName,
+                cryptoSymbol = cryptoBuyAdOrder.cryptoSymbol,
+                cryptoAmount = cryptoBuyAdOrder.totalAmount,
+                message = DefaultResponse(
+                    status = false,
+                    message = "KYC verification is not complete."
+                )
+            )
+
 
             if (cryptoBuyAdOrder.minLimit >= cryptoBuyAdOrder.maxLimit)
                 return@coroutineScope CreateBuyAdResult(
@@ -284,7 +306,7 @@ object MerchantServices {
                     cryptoAmount = cryptoBuyAdOrder.totalAmount,
                     message = DefaultResponse(
                         status = false,
-                        message = "Margin should not be greater that 0.05%"
+                        message = "Margin should not be greater that 50%"
                     )
                 )
 
@@ -388,7 +410,7 @@ object MerchantServices {
             }
 
 
-            val merchantCryptoBuyAd = CreateCryptoBuyAd(
+            val merchantCryptoBuyAd = BuyAd(
                 merchantUsername = merchantDataResult.username,
                 email = merchantDataResult.email,
                 cryptoName = doesCryptoAssetExist.name,
@@ -421,7 +443,7 @@ object MerchantServices {
 
             val createCryptoBuyAd = try {
                 async {
-                    Entries.dbCreateCreateCryptoBuyAd.insertOne(
+                    Entries.buyAd.insertOne(
                         merchantCryptoBuyAd
                     ).wasAcknowledged()
                 }
@@ -483,9 +505,25 @@ object MerchantServices {
         }
     }
 
-    suspend fun createSellAd(cryptoSellAdOrder: CryptoSellAdOrder): CreateSellAdResult {
+    suspend fun createSellAd(cryptoSellAdOrder: SellAdDto): CreateSellAdResult {
 
         return coroutineScope {
+
+            val doesUserExist = async {
+                Entries.dbMerchant.findOne(Merchant::email eq cryptoSellAdOrder.email)
+            }.await()
+
+            if (doesUserExist?.kycVerification == false)
+                return@coroutineScope CreateSellAdResult(
+
+                    cryptoName = cryptoSellAdOrder.cryptoName,
+                    cryptoSymbol = cryptoSellAdOrder.cryptoSymbol,
+                    cryptoAmount = cryptoSellAdOrder.totalAmount,
+                    message = DefaultResponse(
+                        status = false,
+                        message = "KYC verification is not complete"
+                    )
+                )
 
             if (cryptoSellAdOrder.minLimit >= cryptoSellAdOrder.maxLimit)
                 return@coroutineScope CreateSellAdResult(
@@ -515,7 +553,7 @@ object MerchantServices {
                     cryptoAmount = cryptoSellAdOrder.totalAmount,
                     message = DefaultResponse(
                         status = false,
-                        message = "Margin should not be greater that 0.05%"
+                        message = "Margin should not be greater that 50%"
                     )
                 )
 
@@ -620,7 +658,7 @@ object MerchantServices {
             }
 
 
-            val merchantCryptoSellAd = CreateCryptoSellAd(
+            val merchantCryptoSellAd = SellAd(
                 merchantUsername = merchantDataResult.username,
                 email = merchantDataResult.email,
                 cryptoName = doesCryptoAssetExist.name,
@@ -718,6 +756,18 @@ object MerchantServices {
     suspend fun swapCrypto(cryptoSwap: CryptoSwap): SwappingResults {
 
         return coroutineScope {
+
+            val doesUserExist = async {
+                Entries.dbMerchant.findOne(Merchant::email eq cryptoSwap.email)
+            }.await()
+
+            if (doesUserExist?.kycVerification == false)
+                return@coroutineScope SwappingResults(
+                    message = DefaultResponse(
+                        status = false,
+                        message = "KYC verification is not complete"
+                    )
+                )
 
             val isToCryptoSwappable = try {
                 async {

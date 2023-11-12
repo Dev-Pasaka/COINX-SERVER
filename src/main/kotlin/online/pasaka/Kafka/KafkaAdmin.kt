@@ -6,9 +6,8 @@ import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.StringSerializer
 import java.util.*
 
-class KafkaAdmin(private val properties: Properties = Properties()) {
-
-    private val adminProps = properties.apply {
+class KafkaAdmin {
+    private val adminProps = Properties().apply {
         put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaConfig.BOOTSTRAP_SERVER_URL)
         put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java)
         put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java)
@@ -17,7 +16,7 @@ class KafkaAdmin(private val properties: Properties = Properties()) {
     fun createTopic(
         topicName: String = "my-new-topic",
         partitions: Int = 6,
-        replicationFactor: Short = 1,
+        replicationFactor: Short = 3,
         additionalConfig: MutableMap<String, String>? = null
     ): Boolean {
 
@@ -89,6 +88,7 @@ class KafkaAdmin(private val properties: Properties = Properties()) {
 
 
     }
+
     fun describeTopic(topicName: String): Triple<String, String, String> {
 
         val properties = adminProps
@@ -123,21 +123,10 @@ class KafkaAdmin(private val properties: Properties = Properties()) {
 }
 
 fun main() {
+    println(
+        KafkaAdmin().listTopics()
+    )
 
-
-   // println(KafkaAdmin().describeTopic(topicName = KafkaConfig.EMAIL_NOTIFICATIONS))
-//println(KafkaAdmin().describeTopic(topicName = "Test_Topic"))
-// println(KafkaAdmin().createTopic(topicName = KafkaConfig.NOTIFICATIONS))
-   /* repeat(10){
-        println(KafkaAdmin().deleteTopic(topicName = KafkaConfig.MERCHANT_FLOAT_WITHDRAWAL))
-        println(KafkaAdmin().deleteTopic(topicName = KafkaConfig.MERCHANT_FLOAT_TOP_UP))
-        println(KafkaAdmin().listTopics())
-
-    }*/
-    println(KafkaAdmin().deleteTopic(topicName = KafkaConfig.EMAIL_NOTIFICATIONS))
-    //println(KafkaAdmin().deleteTopic(topicName = KafkaConfig.MERCHANT_FLOAT_WITHDRAWAL))
-
-  println(KafkaAdmin().listTopics())
 }
 
 
