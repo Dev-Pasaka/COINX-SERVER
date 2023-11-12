@@ -1,7 +1,8 @@
 package online.pasaka.scheduleTasks
 
 import kotlinx.coroutines.*
-import online.pasaka.scheduleTasks.orderStatus.ExpiredOrders
+import online.pasaka.scheduleTasks.orderStatus.ExpireBuyOrders
+import online.pasaka.scheduleTasks.orderStatus.ExpireSellOrders
 import online.pasaka.threads.Threads
 import java.util.concurrent.Executors
 
@@ -16,11 +17,11 @@ suspend fun startTasksSchedulers() {
     coroutineScope.launch {
         CurrencyUpdater.updateCurrenciesInRedis()
     }
+    coroutineScope.launch { ExpireBuyOrders.updateExpiredOrders() }
+    coroutineScope.launch { AutoReleaseBuyOrders.autoReleaseBuyOrders() }
+    coroutineScope.launch { AutoReleaseSellOrders.autoReleaseSellOrders() }
     coroutineScope.launch {
-        ExpiredOrders.updateExpiredOrders()
-    }
-    coroutineScope.launch {
-        AutoRelease.autoReleaseBuyOrders()
+        ExpireSellOrders.updateExpiredSellOrders()
     }
 
 

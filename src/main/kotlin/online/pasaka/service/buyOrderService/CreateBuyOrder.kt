@@ -6,51 +6,63 @@ import online.pasaka.Kafka.models.*
 import online.pasaka.Kafka.models.messages.BuyOrderConfirmationNotificationMessage
 import online.pasaka.Kafka.producers.kafkaProducer
 import online.pasaka.config.KafkaConfig
-import online.pasaka.database.DatabaseConnection
 import online.pasaka.database.Entries
-import online.pasaka.model.cryptoAds.CreateCryptoBuyAd
+import online.pasaka.model.cryptoAds.BuyAd
 import online.pasaka.model.escrow.BuyEscrowWallet
 import online.pasaka.model.escrow.EscrowState
+import online.pasaka.model.merchant.Merchant
 import online.pasaka.model.order.BuyOrder
 import online.pasaka.model.order.OrderStatus
 import online.pasaka.repository.cryptodata.GetCryptoPrice
 import online.pasaka.responses.DefaultResponse
 import online.pasaka.utils.Utils
 import org.bson.types.ObjectId
+import org.litote.kmongo.MongoOperator
 import org.litote.kmongo.eq
 import org.litote.kmongo.findOne
-import org.litote.kmongo.getCollection
 import org.litote.kmongo.updateOne
 
-suspend fun createBuyOrder(
-    buyOrder: BuyOrder
-): DefaultResponse {
-
+suspend fun createBuyOrder(buyOrder: BuyOrder): DefaultResponse {
     return coroutineScope {
 
+/**Step 1: Retrieve the merchant's crypto ad for the selected buy order */
         val merchantsCryptoAd = try {
             async(Dispatchers.IO) {
-                Entries.merchantCryptoBuyAd.findOne(CreateCryptoBuyAd::id eq buyOrder.adId)
+                Entries.buyAd.findOne(BuyAd::id eq buyOrder.adId)
             }.await()
         } catch (e: Exception) {
             null
-        } ?: return@coroutineScope DefaultResponse(message = "The crypto add selected does not exit")
+        } ?: return@coroutineScope DefaultResponse(message = "The crypto ad selected does not exist")
 
-        if (merchantsCryptoAd.totalAmount < buyOrder.cryptoAmount)
-            return@coroutineScope DefaultResponse(message = "Crypto ad selected has insufficient balance kindly choose another  crypto AD")
+        /** Step 2: Check if the crypto ad has sufficient balance */
+        if (merchantsCryptoAd.totalAmount < buyOrder.cryptoAmount) {
+            return@coroutineScope DefaultResponse(message = "Crypto ad selected has insufficient balance. Choose another crypto ad")
+        }
 
+/** Step 3: Check if the crypto symbol in the order matches the crypto ad's symbol */
         val doesCryptoSymbolMatch = merchantsCryptoAd.cryptoSymbol == buyOrder.cryptoSymbol.uppercase()
-        if (!doesCryptoSymbolMatch) return@coroutineScope DefaultResponse(message = "The crypto selected don't match with the crypto ad")
+        if (!doesCryptoSymbolMatch) {
+            return@coroutineScope DefaultResponse(message = "The crypto selected does not match with the crypto ad")
+        }
 
-        val merchantAssets =
-            merchantsCryptoAd.copy(totalAmount = merchantsCryptoAd.totalAmount - buyOrder.cryptoAmount)
+/** Step 4: Update the merchant's assets */
+        val merchantAssets = merchantsCryptoAd.copy(totalAmount = merchantsCryptoAd.totalAmount - buyOrder.cryptoAmount)
 
+/** Step 5: Generate a unique order ID */
         val orderId = ObjectId().toString()
-        val cryptoPriceInUSD = GetCryptoPrice().getCryptoMetadata(cryptoSymbol = buyOrder.cryptoSymbol.uppercase(), currency = "KES").price?.toDoubleOrNull()
-                ?: return@coroutineScope DefaultResponse(message = "Failed to fetch current prices")
-        val transferAmountByBuyer =
-            (buyOrder.cryptoAmount * cryptoPriceInUSD) + (merchantsCryptoAd.margin * (cryptoPriceInUSD)*buyOrder.cryptoAmount)
 
+/** Step 6: Fetch the current crypto price in USD */
+        val cryptoPriceInKes = GetCryptoPrice().getCryptoMetadata(
+            cryptoSymbol = buyOrder.cryptoSymbol.uppercase(),
+            currency = "KES"
+        ).price?.toDoubleOrNull()
+            ?: return@coroutineScope DefaultResponse(message = "Failed to fetch current prices")
+
+/** Calculate the amount to be transferred by the buyer */
+        val transferAmountByBuyer = (buyOrder.cryptoAmount * cryptoPriceInKes) +
+                (merchantsCryptoAd.margin * cryptoPriceInKes * buyOrder.cryptoAmount)
+
+/** Step 7: Create an entry in the escrow wallet */
         val updateEscrowWallet = BuyEscrowWallet(
             orderId = orderId,
             merchantAdId = merchantsCryptoAd.id,
@@ -61,13 +73,14 @@ suspend fun createBuyOrder(
             cryptoAmount = buyOrder.cryptoAmount,
             escrowState = EscrowState.PENDING,
             debitedAt = Utils.currentTimeStamp(),
-            expiresAt = System.currentTimeMillis() + (60000*1)
+            expiresAt = System.currentTimeMillis() + (60000 * 15)
         )
 
+/** Step 8: Debit the merchant's crypto ad */
         val debitCryptoAd = try {
             async(Dispatchers.IO) {
-                Entries.merchantCryptoBuyAd
-                    .updateOne(CreateCryptoBuyAd::id eq buyOrder.adId, merchantAssets)
+                Entries.buyAd
+                    .updateOne(BuyAd::id eq buyOrder.adId, merchantAssets)
                     .wasAcknowledged()
             }
         } catch (e: Exception) {
@@ -75,6 +88,7 @@ suspend fun createBuyOrder(
             null
         }
 
+/** Step 9: Credit the escrow wallet */
         val creditEscrowWallet = try {
             async(Dispatchers.IO) {
                 Entries.buyEscrowWallet
@@ -86,17 +100,20 @@ suspend fun createBuyOrder(
             null
         }
 
+/** Step 10: Create a buy order entry */
         val createOrder = BuyOrder(
             orderId = orderId,
             adId = merchantsCryptoAd.id,
             buyersEmail = merchantsCryptoAd.email,
             cryptoName = merchantsCryptoAd.cryptoName,
-            cryptoSymbol = buyOrder.cryptoSymbol,
+            cryptoSymbol = merchantsCryptoAd.cryptoSymbol,
             cryptoAmount = buyOrder.cryptoAmount,
             amountInKes = transferAmountByBuyer,
             orderStatus = OrderStatus.PENDING,
             expiresAt = buyOrder.expiresAt
         )
+
+/** Step 11: Insert the buy order into the database */
         val createBuyOrder = try {
             async(Dispatchers.IO) {
                 Entries.cryptoBuyOrders.insertOne(createOrder).wasAcknowledged()
@@ -106,6 +123,32 @@ suspend fun createBuyOrder(
             null
         }
 
+        /** Get merchant's stats*/
+        val getMerchantOrderStats = try {
+            async(Dispatchers.IO) {
+                Entries.dbMerchant.findOne(Merchant::email eq merchantsCryptoAd.email )
+            }.await()
+        }catch (e:Exception){
+            e.printStackTrace()
+            null
+        }
+
+        /** Update merchant's stats*/
+        launch(Dispatchers.IO) {
+            if (getMerchantOrderStats != null){
+                val ordersCompletedByPercentage = (getMerchantOrderStats.ordersCompleted.toDouble()/getMerchantOrderStats.ordersMade.toDouble()) * 100
+                Entries.dbMerchant.updateOne(
+                    Merchant::email eq merchantsCryptoAd.email,
+                    getMerchantOrderStats.copy(
+                        ordersMade = getMerchantOrderStats.ordersMade + 1,
+                        ordersCompletedByPercentage = ordersCompletedByPercentage.toDouble()
+                    )
+
+                )
+            }
+        }
+
+/** Step 12: Send an email notification to the merchant */
         val gson = Gson()
         val notificationsMessage = BuyOrderConfirmationNotificationMessage(
             orderId = createOrder.orderId,
@@ -119,38 +162,50 @@ suspend fun createBuyOrder(
             amountInKes = createOrder.amountInKes
         )
         val emailNotificationMessage = Notification(
-            notificationType = NotificationType.ORDER_HAS_BEEN_PLACED,
+            notificationType = NotificationType.BUY_ORDER_HAS_BEEN_PLACED,
             notificationMessage = notificationsMessage
         )
         launch(Dispatchers.IO) {
             kafkaProducer(topic = KafkaConfig.EMAIL_NOTIFICATIONS, message = gson.toJson(emailNotificationMessage))
         }
 
-        createBuyOrder?.await()
-            ?: return@coroutineScope DefaultResponse(message = "An expected error has occurred")
-        val debitCryptoAdResult = debitCryptoAd?.await()
-            ?: return@coroutineScope DefaultResponse(message = "An expected error has occurred")
-        val creditEscrowWalletResult = creditEscrowWallet?.await()
-            ?: return@coroutineScope DefaultResponse(message = "An expected error has occurred")
+        /** Step 13: Await asynchronous operations */
+        createBuyOrder?.await() ?: return@coroutineScope DefaultResponse(message = "An expected error has occurred")
+        val debitCryptoAdResult = debitCryptoAd?.await() ?: return@coroutineScope DefaultResponse(message = "An expected error has occurred")
+        val creditEscrowWalletResult = creditEscrowWallet?.await() ?: return@coroutineScope DefaultResponse(message = "An expected error has occurred")
 
-        if (debitCryptoAdResult && creditEscrowWalletResult)
-        {
-            delay(60000)
+        /** Step 14: Check results and return the appropriate response */
+        if (debitCryptoAdResult && creditEscrowWalletResult) {
             return@coroutineScope DefaultResponse(
                 status = true,
-                message = "Merchants assets are in holding in escrow"
+                message = "Merchant's assets are in holding in escrow"
             )
+        } else {
+            return@coroutineScope DefaultResponse(message = "An expected error has occurred")
         }
-        else DefaultResponse(message = "An expected has occurred")
-
-
     }
-
-
 }
 
+
 suspend fun main() {
-    println(
+    coroutineScope {
+        val getMerchantOrderStats = try {
+            async(Dispatchers.IO) {
+                Entries.dbMerchant.findOne(Merchant::email eq "dev.pasaka@gmail.com")
+            }.await()
+        }catch (e:Exception){
+            e.printStackTrace()
+            null
+        }
+
+        println("OrderMade ${getMerchantOrderStats?.ordersMade!!}")
+        println("OrderCompleted ${getMerchantOrderStats.ordersCompleted}")
+      println(
+          println("OrdersCompleted% : ${          (getMerchantOrderStats.ordersCompleted.toDouble() / getMerchantOrderStats.ordersMade.toDouble()) * 100
+          }")
+        )
+    }
+    /*println(
         createBuyOrder(
             buyOrder = BuyOrder(
                 orderId = "8976534",
@@ -163,5 +218,5 @@ suspend fun main() {
                 expiresAt = System.currentTimeMillis() + (60000*15).toLong()
             )
         )
-    )
+    )*/
 }

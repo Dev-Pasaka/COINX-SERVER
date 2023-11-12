@@ -11,7 +11,7 @@ import online.pasaka.Kafka.models.NotificationType
 import online.pasaka.Kafka.producers.kafkaProducer
 import online.pasaka.config.KafkaConfig
 import online.pasaka.database.Entries
-import online.pasaka.model.cryptoAds.CreateCryptoBuyAd
+import online.pasaka.model.cryptoAds.BuyAd
 import online.pasaka.model.escrow.BuyEscrowWallet
 import online.pasaka.model.escrow.EscrowState
 import online.pasaka.model.order.BuyOrder
@@ -40,7 +40,7 @@ suspend fun buyerHasTransferredFundsToMerchant(buyOrderID: String): DefaultRespo
             else -> {}
         }
         val getMerchantInfo = try {
-            async(Dispatchers.IO) {  Entries.cryptoBuyAd.findOne(CreateCryptoBuyAd::id eq doesBuyOrderExists.adId)}.await()
+            async(Dispatchers.IO) {  Entries.buyAd.findOne(BuyAd::id eq doesBuyOrderExists.adId)}.await()
         }catch (e:Exception){
             null
         } ?: return@coroutineScope DefaultResponse(message = "Crypto Ad info not found")

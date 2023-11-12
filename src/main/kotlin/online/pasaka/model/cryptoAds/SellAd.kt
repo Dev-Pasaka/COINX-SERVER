@@ -12,8 +12,9 @@ data class SellAd(
     val cryptoName:String,
     val cryptoSymbol:String,
     val totalAmount:Double,
+    val margin:Double,
     val minLimit:Double,
     val maxLimit:Double,
     val adStatus:AdStatus,
-    val timeStamp:String = Utils.currentTimeStamp()
+    val createdAt:String = Utils.currentTimeStamp()
 )

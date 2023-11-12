@@ -8,20 +8,25 @@ import online.pasaka.model.order.BuyOrder
 import online.pasaka.model.order.OrderStatus
 import online.pasaka.service.buyOrderService.createBuyOrder
 import online.pasaka.threads.Threads
-import online.pasaka.utils.Utils
+import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
+import org.apache.kafka.common.serialization.StringSerializer
 import org.bson.types.ObjectId
 import java.time.Duration
 import java.util.*
 import java.util.concurrent.Executors
 
 @OptIn(DelicateCoroutinesApi::class)
-suspend fun cryptoBuyOrderConsumer(
+suspend fun buyOrderConsumer(
     groupId: String = "cryptoBuyOrders",
     topicName: String = KafkaConfig.CRYPTO_BUY_ORDERS
 ) {
+    val kafkaUrl = KafkaConfig.BOOTSTRAP_SERVER_URL
+    val username = KafkaConfig.KAFKA_USERNAME
+    val password = KafkaConfig.KAFKA_PASSWORD
+
     val customDispatcher = Executors.newSingleThreadExecutor { r ->
         Thread(r, Threads.CONSUMERS)
     }.asCoroutineDispatcher()
@@ -82,5 +87,5 @@ suspend fun cryptoBuyOrderConsumer(
 
 
 suspend fun main() {
-    cryptoBuyOrderConsumer()
+    buyOrderConsumer()
 }

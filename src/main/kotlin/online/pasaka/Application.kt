@@ -42,6 +42,7 @@ fun Application.module() {
     configureSecurity()
     configureRouting()
     configureClientLogging()
+    configureWebsocket()
 
 }
 

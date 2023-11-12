@@ -6,9 +6,11 @@ import online.pasaka.config.KafkaConfig
 import online.pasaka.model.merchant.wallet.MerchantFloatWithdrawalMessage
 import online.pasaka.service.merchantServices.MerchantServices
 import online.pasaka.threads.Threads
+import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
+import org.apache.kafka.common.serialization.StringSerializer
 import java.time.Duration
 import java.util.*
 import java.util.concurrent.Executors
@@ -18,20 +20,23 @@ suspend fun merchantWithdrawalConsumer(
     groupId: String = "ktor-consumer",
     topicName: String = KafkaConfig.MERCHANT_FLOAT_WITHDRAWAL
 ) {
+    val kafkaUrl = KafkaConfig.BOOTSTRAP_SERVER_URL
+    val username = KafkaConfig.KAFKA_USERNAME
+    val password = KafkaConfig.KAFKA_PASSWORD
+
     val customDispatcher = Executors.newSingleThreadExecutor { r ->
         Thread(r, Threads.CONSUMERS)
     }.asCoroutineDispatcher()
 
     val coroutineScope = CoroutineScope(customDispatcher)
     coroutineScope.launch {
-
-            val consumerProps = Properties().apply {
-                put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaConfig.BOOTSTRAP_SERVER_URL)
-                put("key.deserializer", StringDeserializer::class.java)
-                put("value.deserializer", StringDeserializer::class.java)
-                put("group.id", groupId)
-                put("session.timeout.ms", 45000)
-            }
+        val consumerProps = Properties().apply {
+            put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaConfig.BOOTSTRAP_SERVER_URL)
+            put("key.deserializer", StringDeserializer::class.java)
+            put("value.deserializer", StringDeserializer::class.java)
+            put("group.id", groupId)
+            put("session.timeout.ms", 45000)
+        }
 
             val consumer = KafkaConsumer<String, String>(consumerProps)
             consumer.subscribe(listOf(topicName))

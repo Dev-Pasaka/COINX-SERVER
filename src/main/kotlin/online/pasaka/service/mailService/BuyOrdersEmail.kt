@@ -9,7 +9,7 @@ import javax.mail.*
 import javax.mail.internet.InternetAddress
 import javax.mail.internet.MimeMessage
 
-suspend fun sendEmail(
+suspend fun buyOrderEmail(
     title:String,
     recipientName:String,
     recipientEmail: String,
@@ -71,7 +71,7 @@ suspend fun sendEmail(
                     }
                     "Buyer Has Cancelled The Order" ->{
                         message.setContent(
-                            orderCancellation(
+                            buyOrderCancellation(
                                 title = title,
                                 recipientName = recipientName,
                                 orderID = orderID,
@@ -83,7 +83,7 @@ suspend fun sendEmail(
 
                         )
                     }
-                    "Order Has Expired" ->{
+                    "Buy Order has expired" ->{
                         message.setContent(
                             expiredOrderTemplate(
                                 title = title,
@@ -126,7 +126,7 @@ suspend fun sendEmail(
 
 
 suspend fun main() {
-sendEmail(
+buyOrderEmail(
     title = "",
     orderID =  "",
     recipientName = "",

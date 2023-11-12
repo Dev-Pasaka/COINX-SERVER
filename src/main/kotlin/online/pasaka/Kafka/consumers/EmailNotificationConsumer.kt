@@ -5,34 +5,40 @@ import kotlinx.coroutines.*
 import online.pasaka.Kafka.models.Notification
 import online.pasaka.Kafka.models.NotificationType
 import online.pasaka.config.KafkaConfig
-import online.pasaka.service.mailService.sendEmail
+import online.pasaka.service.mailService.buyOrderEmail
+import online.pasaka.service.mailService.sellOrderEmail
 import online.pasaka.threads.Threads
+import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
+import org.apache.kafka.common.serialization.StringSerializer
 import java.time.Duration
 import java.util.*
 import java.util.concurrent.Executors
 
 @OptIn(DelicateCoroutinesApi::class)
-suspend fun emailNotificationConsumer(
+suspend fun EmailNotificationConsumer(
     groupId: String = "emailNotificationConsumers",
     topicName: String = KafkaConfig.EMAIL_NOTIFICATIONS
 ) {
+    val kafkaUrl = KafkaConfig.BOOTSTRAP_SERVER_URL
+    val username = KafkaConfig.KAFKA_USERNAME
+    val password = KafkaConfig.KAFKA_PASSWORD
+
     val customDispatcher = Executors.newSingleThreadExecutor { r ->
         Thread(r, Threads.CONSUMERS)
     }.asCoroutineDispatcher()
 
     val coroutineScope = CoroutineScope(customDispatcher)
     coroutineScope.launch {
-
-            val consumerProps = Properties().apply {
-                put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaConfig.BOOTSTRAP_SERVER_URL)
-                put("key.deserializer", StringDeserializer::class.java)
-                put("value.deserializer", StringDeserializer::class.java)
-                put("group.id", groupId)
-                put("session.timeout.ms", 45000)
-            }
+        val consumerProps = Properties().apply {
+            put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaConfig.BOOTSTRAP_SERVER_URL)
+            put("key.deserializer", StringDeserializer::class.java)
+            put("value.deserializer", StringDeserializer::class.java)
+            put("group.id", groupId)
+            put("session.timeout.ms", 45000)
+        }
 
             val consumer = KafkaConsumer<Nothing, String>(consumerProps)
             consumer.subscribe(listOf(topicName))
@@ -50,11 +56,12 @@ suspend fun emailNotificationConsumer(
                     val notificationMessage = gson.fromJson(message, Notification::class.java)
                     println(notificationMessage)
                     when (notificationMessage.notificationType) {
-                        NotificationType.ORDER_HAS_BEEN_PLACED ->{
+                        /** Send buy order confirmation email */
+                        NotificationType.BUY_ORDER_HAS_BEEN_PLACED ->{
                             try {
                                 val result = notificationMessage.notificationMessage as? Map<String, Any> ?: emptyMap()
                                 launch(Dispatchers.IO) {
-                                    sendEmail(
+                                    buyOrderEmail(
                                         title = result["title"].toString(),
                                         orderID = result["orderId"]?.toString() ?: "",
                                         recipientName = result["recipientName"]?.toString() ?: "",
@@ -71,10 +78,12 @@ suspend fun emailNotificationConsumer(
                             }
 
                         }
-                        NotificationType.EXPIRED ->{
+
+                        /** Send buy order expiration email */
+                        NotificationType.BUY_ORDER_EXPIRED ->{
                             val result = notificationMessage.notificationMessage as? Map<String, Any> ?: emptyMap()
                             launch(Dispatchers.IO) {
-                                sendEmail(
+                                buyOrderEmail(
                                     title = result["title"].toString(),
                                     orderID = result["orderId"]?.toString() ?: "",
                                     recipientName = result["recipientName"]?.toString() ?: "",
@@ -88,12 +97,13 @@ suspend fun emailNotificationConsumer(
                             }
 
                         }
-                        NotificationType.CANCELLED ->{
 
+                        /** Send buy order cancellation email*/
+                        NotificationType.BUY_ORDER_CANCELLED ->{
                         println(notificationMessage)
                         val result = notificationMessage.notificationMessage as? Map<String, Any> ?: emptyMap()
                             launch(Dispatchers.IO) {
-                                sendEmail(
+                                buyOrderEmail(
                                     title = result["title"].toString(),
                                     recipientName = result["recipientName"].toString(),
                                     recipientEmail = result["recipientEmail"].toString(),
@@ -106,10 +116,12 @@ suspend fun emailNotificationConsumer(
                             }
 
                         }
-                        NotificationType.COMPLETED ->{
+
+                        /** Send buy order completed success email*/
+                        NotificationType.BUY_ORDER_COMPLETED ->{
                             val result = notificationMessage.notificationMessage as? Map<String, Any> ?: emptyMap()
                             launch(Dispatchers.IO) {
-                                sendEmail(
+                                buyOrderEmail(
                                     title = result["title"].toString(),
                                     recipientName = result["recipientName"].toString(),
                                     recipientEmail = result["recipientEmail"].toString(),
@@ -122,12 +134,13 @@ suspend fun emailNotificationConsumer(
                             }
 
                         }
-                        NotificationType.BUYER_HAS_TRANSFERRED_FUNDS ->{
 
+                        /** Send buy notify merchant via email that buyers has transferred the funds*/
+                        NotificationType.BUYER_HAS_TRANSFERRED_FUNDS ->{
                             println(notificationMessage)
                             val result = notificationMessage.notificationMessage as? Map<String, Any> ?: emptyMap()
                             launch(Dispatchers.IO) {
-                                sendEmail(
+                                buyOrderEmail(
                                     title = result["title"].toString(),
                                     recipientName = result["recipientName"].toString(),
                                     recipientEmail = result["recipientEmail"].toString(),
@@ -138,10 +151,98 @@ suspend fun emailNotificationConsumer(
                                     amountToReceive = result["amountInKes"].toString().toDoubleOrNull() ?: 0.0,
                                 )
                             }
-                            //exitProcess(status = 2)
                         }
 
-                        else -> {}
+                        /** Send sell order confirmation email */
+                        NotificationType.SELL_ORDER_HAS_BEEN_PLACED ->{
+                            println(notificationMessage)
+                            val result = notificationMessage.notificationMessage as? Map<String, Any> ?: emptyMap()
+                            launch(Dispatchers.IO) {
+                                sellOrderEmail(
+                                    title = result["title"].toString(),
+                                    recipientName = result["recipientName"].toString(),
+                                    recipientEmail = result["recipientEmail"].toString(),
+                                    orderID = result["orderId"].toString(),
+                                    cryptoAmount = result["cryptoAmount"].toString().toDoubleOrNull() ?: 0.0,
+                                    cryptoSymbol = result["cryptoSymbol"].toString(),
+                                    cryptoName = result["cryptoName"].toString(),
+                                    amountToSend = result["amountInKes"].toString().toDoubleOrNull() ?: 0.0,
+                                )
+                            }
+                        }
+
+                        /** Send sell order confirmation email */
+                        NotificationType.MERCHANT_HAS_TRANSFERRED_FUNDS ->{
+                            println(notificationMessage)
+                            val result = notificationMessage.notificationMessage as? Map<String, Any> ?: emptyMap()
+                            launch(Dispatchers.IO) {
+                                sellOrderEmail(
+                                    title = result["title"].toString(),
+                                    recipientName = result["recipientName"].toString(),
+                                    recipientEmail = result["recipientEmail"].toString(),
+                                    orderID = result["orderId"].toString(),
+                                    cryptoAmount = result["cryptoAmount"].toString().toDoubleOrNull() ?: 0.0,
+                                    cryptoSymbol = result["cryptoSymbol"].toString(),
+                                    cryptoName = result["cryptoName"].toString(),
+                                    amountToSend = result["amountInKes"].toString().toDoubleOrNull() ?: 0.0,
+                                )
+                            }
+                        }
+
+                        /** Send sell order cancellation notification to merchant */
+                        NotificationType.SELL_ORDER_CANCELLED ->{
+                            println(notificationMessage)
+                            val result = notificationMessage.notificationMessage as? Map<String, Any> ?: emptyMap()
+                            launch(Dispatchers.IO) {
+                                sellOrderEmail(
+                                    title = result["title"].toString(),
+                                    recipientName = result["recipientName"].toString(),
+                                    recipientEmail = result["recipientEmail"].toString(),
+                                    orderID = result["orderId"].toString(),
+                                    cryptoAmount = result["cryptoAmount"].toString().toDoubleOrNull() ?: 0.0,
+                                    cryptoSymbol = result["cryptoSymbol"].toString(),
+                                    cryptoName = result["cryptoName"].toString(),
+                                    amountToSend = result["amountInKes"].toString().toDoubleOrNull() ?: 0.0,
+                                )
+                            }
+                        }
+
+                        /** Send sell order completion notification to merchant */
+                        NotificationType.SELL_ORDER_COMPLETED ->{
+                            println(notificationMessage)
+                            val result = notificationMessage.notificationMessage as? Map<String, Any> ?: emptyMap()
+                            launch(Dispatchers.IO) {
+                                sellOrderEmail(
+                                    title = result["title"].toString(),
+                                    recipientName = result["recipientName"].toString(),
+                                    recipientEmail = result["recipientEmail"].toString(),
+                                    orderID = result["orderId"].toString(),
+                                    cryptoAmount = result["cryptoAmount"].toString().toDoubleOrNull() ?: 0.0,
+                                    cryptoSymbol = result["cryptoSymbol"].toString(),
+                                    cryptoName = result["cryptoName"].toString(),
+                                    amountToSend = result["amountInKes"].toString().toDoubleOrNull() ?: 0.0,
+                                )
+                            }
+                        }
+                        /** Send sell order completion notification to merchant */
+                        NotificationType.SELL_ORDER_EXPIRED ->{
+                            println(notificationMessage)
+                            val result = notificationMessage.notificationMessage as? Map<String, Any> ?: emptyMap()
+                            launch(Dispatchers.IO) {
+                                sellOrderEmail(
+                                    title = result["title"].toString(),
+                                    recipientName = result["recipientName"].toString(),
+                                    recipientEmail = result["recipientEmail"].toString(),
+                                    orderID = result["orderId"].toString(),
+                                    cryptoAmount = result["cryptoAmount"].toString().toDoubleOrNull() ?: 0.0,
+                                    cryptoSymbol = result["cryptoSymbol"].toString(),
+                                    cryptoName = result["cryptoName"].toString(),
+                                    amountToSend = result["amountInKes"].toString().toDoubleOrNull() ?: 0.0,
+                                )
+                                delay(100)
+                            }
+                        }
+
                     }
                 }
 
@@ -153,5 +254,5 @@ suspend fun emailNotificationConsumer(
 }
 
 suspend fun main() {
-    emailNotificationConsumer()
+    EmailNotificationConsumer()
 }

@@ -1,8 +1,6 @@
 package online.pasaka.service.userServices
 
 import online.pasaka.repository.cryptodata.GetAllCryptoPrices
-import online.pasaka.database.DatabaseConnection
-import com.mongodb.client.MongoDatabase
 import com.mongodb.client.result.UpdateResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -34,7 +32,7 @@ object UserServices {
             }
 
             val deleteWallet = async(Dispatchers.IO) {
-                Entries.dbTraderWallet.findOneAndDelete(Wallet::walletId eq email)
+                Entries.userWallet.findOneAndDelete(Wallet::walletId eq email)
             }
 
             val result = (deleteAccount.await() != null && deleteWallet.await() != null)
@@ -46,7 +44,7 @@ object UserServices {
     suspend fun createWallet(wallet: Wallet): Boolean {
 
         return coroutineScope {
-            async(Dispatchers.IO) { Entries.dbTraderWallet.insertOne(wallet).wasAcknowledged() }.await()
+            async(Dispatchers.IO) { Entries.userWallet.insertOne(wallet).wasAcknowledged() }.await()
         }
 
     }
@@ -62,7 +60,7 @@ object UserServices {
     private suspend fun getUserPortfolio(email: String): Wallet? {
 
         return coroutineScope {
-            async(Dispatchers.IO) { Entries.dbTraderWallet.findOne(Wallet::walletId eq email) }.await()
+            async(Dispatchers.IO) { Entries.userWallet.findOne(Wallet::walletId eq email) }.await()
         }
 
     }

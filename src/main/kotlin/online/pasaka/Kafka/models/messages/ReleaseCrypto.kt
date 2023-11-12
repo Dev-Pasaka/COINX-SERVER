@@ -1,6 +1,6 @@
 package online.pasaka.Kafka.models.messages
 
-data class MerchantReleaseCryptoAssets(
+data class ReleaseCrypto(
     val title:String = "Deposit Was Successful",
     val orderId:String,
     val recipientEmail: String,

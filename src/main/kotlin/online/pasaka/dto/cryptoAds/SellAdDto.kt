@@ -1,8 +1,6 @@
-package online.pasaka.model.cryptoAds
+package online.pasaka.dto.cryptoAds
 
-import kotlinx.serialization.Serializable
-
-data class CryptoBuyAdOrder(
+data class SellAdDto(
     val email:String,
     val cryptoName:String,
     val cryptoSymbol:String,
