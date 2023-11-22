@@ -3,16 +3,14 @@ package online.pasaka.Kafka.consumers
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.Json
 import online.pasaka.Kafka.models.messages.BuyOrderMessage
-import online.pasaka.config.KafkaConfig
-import online.pasaka.model.order.BuyOrder
-import online.pasaka.model.order.OrderStatus
-import online.pasaka.service.buyOrderService.createBuyOrder
-import online.pasaka.threads.Threads
-import org.apache.kafka.clients.consumer.ConsumerConfig
+import online.pasaka.infrastructure.config.KafkaConfig
+import online.pasaka.domain.model.order.BuyOrder
+import online.pasaka.domain.model.order.OrderStatus
+import online.pasaka.domain.service.orders.buyOrderService.createBuyOrder
+import online.pasaka.infrastructure.threads.Threads
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
-import org.apache.kafka.common.serialization.StringSerializer
 import org.bson.types.ObjectId
 import java.time.Duration
 import java.util.*
@@ -23,9 +21,7 @@ suspend fun buyOrderConsumer(
     groupId: String = "cryptoBuyOrders",
     topicName: String = KafkaConfig.CRYPTO_BUY_ORDERS
 ) {
-    val kafkaUrl = KafkaConfig.BOOTSTRAP_SERVER_URL
-    val username = KafkaConfig.KAFKA_USERNAME
-    val password = KafkaConfig.KAFKA_PASSWORD
+
 
     val customDispatcher = Executors.newSingleThreadExecutor { r ->
         Thread(r, Threads.CONSUMERS)
@@ -57,7 +53,7 @@ suspend fun buyOrderConsumer(
                     if (email.isNotBlank()){
                         println(buyOrderMessageObj)
                        println(
-                           createBuyOrder(
+                          createBuyOrder(
                                buyOrder = BuyOrder(
                                    orderId = ObjectId().toString(),
                                    adId = buyOrderMessageObj.adId,
@@ -66,7 +62,7 @@ suspend fun buyOrderConsumer(
                                    cryptoName = buyOrderMessageObj.cryptoName,
                                    cryptoAmount = buyOrderMessageObj.cryptoAmount,
                                    orderStatus = OrderStatus.PENDING,
-                                   expiresAt = System.currentTimeMillis() + (60000*15).toLong(),
+                                   expiresAt = System.currentTimeMillis() + (60000 * 15).toLong(),
                                    amountInKes = 0.0
                                )
                            )
@@ -86,6 +82,3 @@ suspend fun buyOrderConsumer(
 
 
 
-suspend fun main() {
-    buyOrderConsumer()
-}

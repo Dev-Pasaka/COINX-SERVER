@@ -4,10 +4,10 @@ import com.google.gson.Gson
 import kotlinx.coroutines.*
 import online.pasaka.Kafka.models.Notification
 import online.pasaka.Kafka.models.NotificationType
-import online.pasaka.config.KafkaConfig
-import online.pasaka.service.mailService.buyOrderEmail
-import online.pasaka.service.mailService.sellOrderEmail
-import online.pasaka.threads.Threads
+import online.pasaka.domain.service.mailService.buyOrderEmail
+import online.pasaka.domain.service.mailService.sellOrderEmail
+import online.pasaka.infrastructure.config.KafkaConfig
+import online.pasaka.infrastructure.threads.Threads
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.ProducerConfig
@@ -253,6 +253,3 @@ suspend fun EmailNotificationConsumer(
     }
 }
 
-suspend fun main() {
-    EmailNotificationConsumer()
-}

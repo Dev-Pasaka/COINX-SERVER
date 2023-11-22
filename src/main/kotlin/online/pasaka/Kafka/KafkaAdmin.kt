@@ -1,6 +1,6 @@
 package online.pasaka.Kafka
 
-import online.pasaka.config.KafkaConfig
+import online.pasaka.infrastructure.config.KafkaConfig
 import org.apache.kafka.clients.admin.*
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.StringSerializer
@@ -122,12 +122,13 @@ class KafkaAdmin {
     }
 }
 
-fun main() {
+suspend fun main() {
     println(
         KafkaAdmin().listTopics()
-    )
 
+    )
 }
+
 
 
 

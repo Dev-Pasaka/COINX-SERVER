@@ -2,15 +2,12 @@ package online.pasaka.Kafka.consumers
 
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.Json
-import online.pasaka.config.KafkaConfig
-import online.pasaka.model.merchant.wallet.MerchantFloatTopUpMessage
-import online.pasaka.service.merchantServices.MerchantServices
-import online.pasaka.threads.Threads
-import org.apache.kafka.clients.consumer.ConsumerConfig
+import online.pasaka.domain.service.merchant.MerchantServices
+import online.pasaka.infrastructure.config.KafkaConfig
+import online.pasaka.infrastructure.threads.Threads
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
-import org.apache.kafka.common.serialization.StringSerializer
 import java.time.Duration
 import java.util.*
 import java.util.concurrent.Executors
@@ -49,7 +46,7 @@ suspend fun merchantTopUpConsumer(
 
                     val merchantTopUpJson = record.value()
                     val merchantTopUpObj =
-                        Json.decodeFromString(MerchantFloatTopUpMessage.serializer(), merchantTopUpJson)
+                        Json.decodeFromString(online.pasaka.domain.model.merchant.wallet.MerchantFloatTopUpMessage.serializer(), merchantTopUpJson)
                     val email = merchantTopUpObj.email
 
                     if (email.isBlank()) {

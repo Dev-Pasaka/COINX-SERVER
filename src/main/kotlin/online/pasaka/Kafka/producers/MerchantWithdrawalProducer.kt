@@ -4,8 +4,8 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import online.pasaka.config.KafkaConfig
-import online.pasaka.model.merchant.wallet.MerchantFloatWithdrawalMessage
+import online.pasaka.infrastructure.config.KafkaConfig
+import online.pasaka.domain.model.merchant.wallet.MerchantFloatWithdrawalMessage
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
@@ -27,7 +27,7 @@ suspend fun merchantWithdrawalProducer(
         }
 
         val producer = KafkaProducer<Nothing, String>(producerProps)
-        val merchantTopUp = MerchantFloatWithdrawalMessage(
+        val merchantTopUp = online.pasaka.domain.model.merchant.wallet.MerchantFloatWithdrawalMessage(
             email = email,
             amount = message
         )

@@ -86,7 +86,6 @@ dependencies {
     // https://mvnrepository.com/artifact/redis.clients/jedis
     implementation("redis.clients:jedis:5.0.1")
 
-
     //Java Mail SDK
     implementation("javax.mail:javax.mail-api:1.6.2")
     implementation("com.sun.mail:javax.mail:1.6.2")

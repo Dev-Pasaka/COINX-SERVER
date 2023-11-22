@@ -1,7 +1,7 @@
 package online.pasaka.Kafka.consumers
 
 import kotlinx.coroutines.*
-import online.pasaka.threads.Threads
+import online.pasaka.infrastructure.threads.Threads
 import java.util.concurrent.Executors
 
 @OptIn(DelicateCoroutinesApi::class)

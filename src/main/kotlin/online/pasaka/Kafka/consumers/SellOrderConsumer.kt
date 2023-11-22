@@ -4,19 +4,15 @@ import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
-import online.pasaka.Kafka.models.messages.BuyOrderMessage
 import online.pasaka.Kafka.models.messages.SellOrderMessage
-import online.pasaka.config.KafkaConfig
-import online.pasaka.model.order.OrderStatus
-import online.pasaka.model.order.SellOrder
-import online.pasaka.service.sellOrderService.createSellOrder
-import online.pasaka.threads.Threads
-import org.apache.kafka.clients.consumer.ConsumerConfig
+import online.pasaka.domain.model.order.OrderStatus
+import online.pasaka.domain.model.order.SellOrder
+import online.pasaka.domain.service.orders.sellOrderService.createSellOrder
+import online.pasaka.infrastructure.config.KafkaConfig
+import online.pasaka.infrastructure.threads.Threads
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
-import org.apache.kafka.common.serialization.StringSerializer
 import org.bson.types.ObjectId
 import java.time.Duration
 import java.util.*
@@ -72,7 +68,7 @@ suspend fun sellOrderConsumer(
                                 cryptoName = sellOrderMessageObj.cryptoName,
                                 cryptoAmount = sellOrderMessageObj.cryptoAmount,
                                 orderStatus = OrderStatus.PENDING,
-                                expiresAt = System.currentTimeMillis() + (60000*15).toLong(),
+                                expiresAt = System.currentTimeMillis() + (60000 * 15).toLong(),
                                 amountInKes = 0.0
                             )
                         )
@@ -90,6 +86,3 @@ suspend fun sellOrderConsumer(
 
 }
 
-suspend fun main(){
-    sellOrderConsumer()
-}

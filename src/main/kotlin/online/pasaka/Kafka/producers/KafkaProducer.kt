@@ -2,8 +2,8 @@ package online.pasaka.Kafka.producers
 
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import online.pasaka.config.Config
-import online.pasaka.config.KafkaConfig
+import online.pasaka.infrastructure.config.Config
+import online.pasaka.infrastructure.config.KafkaConfig
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
@@ -34,9 +34,3 @@ suspend fun kafkaProducer(topic: String, message: String){
 
 }
 
-suspend fun main(){
-    repeat(5){
-        kafkaProducer(topic = "TestTopic", message = "hello")
-        Thread.sleep(1000)
-    }
-}
