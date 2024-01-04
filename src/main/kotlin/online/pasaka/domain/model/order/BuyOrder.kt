@@ -1,8 +1,9 @@
 package online.pasaka.domain.model.order
 
+import kotlinx.serialization.Serializable
 import online.pasaka.domain.utils.Utils
 
-
+@Serializable
 data class BuyOrder(
     val orderId: String,
     val adId: String,

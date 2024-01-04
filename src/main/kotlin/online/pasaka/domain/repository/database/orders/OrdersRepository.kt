@@ -7,5 +7,7 @@ interface OrdersRepository{
 
     suspend fun getBuyOrders(email:String):List<BuyOrder>
     suspend fun getSellOrders(email:String):List<SellOrder>
+    suspend fun getBuyOrder(email: String):BuyOrder?
+    suspend fun getSellOrder(email: String):SellOrder?
 
 }

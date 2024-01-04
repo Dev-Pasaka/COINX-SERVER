@@ -30,8 +30,8 @@ object AutoReleaseBuyOrders {
                 /** Get Orders in escrow wallet that merchant have not released to the buyer and have no conflicts  */
                 val expiredEscrowBuyOrders = Entries.buyEscrowWallet.find(
                     and(
-                        online.pasaka.domain.model.escrow.BuyEscrowWallet::escrowState `in` listOf(
-                            online.pasaka.domain.model.escrow.EscrowState.PENDING_MERCHANT_RELEASE
+                        BuyEscrowWallet::escrowState `in` listOf(
+                           EscrowState.PENDING_MERCHANT_RELEASE
                         ),
                         online.pasaka.domain.model.escrow.BuyEscrowWallet::expiresAt lt System.currentTimeMillis(),
 

@@ -1,7 +1,8 @@
 package online.pasaka.domain.model.order
 
+import kotlinx.serialization.Serializable
 import online.pasaka.domain.utils.Utils
-
+@Serializable
 data class SellOrder(
     val orderId: String,
     val adId: String,
@@ -10,7 +11,7 @@ data class SellOrder(
     val cryptoSymbol: String,
     val cryptoAmount: Double,
     val amountInKes: Double,
-    val orderStatus: online.pasaka.domain.model.order.OrderStatus = online.pasaka.domain.model.order.OrderStatus.STARTED,
+    val orderStatus: OrderStatus = online.pasaka.domain.model.order.OrderStatus.STARTED,
     val createdAt: String = Utils.currentTimeStamp(),
     val expiresAt: Long
 )

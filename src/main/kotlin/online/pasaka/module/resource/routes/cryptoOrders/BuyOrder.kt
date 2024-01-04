@@ -44,6 +44,13 @@ fun Route.cryptoBuyOrder() {
 
                 try {
                     launch { kafkaProducer(topic = KafkaConfig.CRYPTO_BUY_ORDERS, message = buyOrderJsonString) }
+                    call.respond(
+                        status = HttpStatusCode.OK,
+                        message = DefaultResponse(
+                            status = true,
+                            message = "Your buy order has been placed successfully "
+                        )
+                    )
 
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -56,14 +63,6 @@ fun Route.cryptoBuyOrder() {
                     )
                 )
 
-
-                call.respond(
-                    status = HttpStatusCode.OK,
-                    message = DefaultResponse(
-                        status = false,
-                        message = "Your buy order has been placed successfully "
-                    )
-                )
 
 
             }

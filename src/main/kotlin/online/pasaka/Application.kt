@@ -37,6 +37,7 @@ fun Application.module() {
     configureRouting()
     configureClientLogging()
     configureWebsocket()
+    configureRateLimiting()
 
 }
 

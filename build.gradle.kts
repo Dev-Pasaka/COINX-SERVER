@@ -92,6 +92,9 @@ dependencies {
     //Afraca's taking SMS SDK
     //implementation("com.github.AfricasTalkingLtd.africastalking-java:core:{VERSION}")
 
+    //Rate limiting
+    implementation("io.ktor:ktor-server-rate-limit:$ktor_version")
+
 
 
 

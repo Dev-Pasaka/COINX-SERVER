@@ -135,7 +135,4 @@ class CryptoAdsRepositoryImpl(val entries: Entries = Entries) : CryptoAdsReposit
 
 }
 
-suspend fun main(){
-    CryptoAdsRepositoryImpl().getBuyAdsData()?.forEach(::println)
-    CryptoAdsRepositoryImpl().getSellAdsData()?.forEach(::println)
-}
+

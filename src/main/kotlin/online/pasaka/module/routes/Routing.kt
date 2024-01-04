@@ -52,5 +52,6 @@ fun Application.configureRouting() {
         getCryptoAds()
         getMerchantData()
         getCryptoAdsFullData()
+        getCryptoOrder()
     }
 }

@@ -122,12 +122,7 @@ class KafkaAdmin {
     }
 }
 
-suspend fun main() {
-    println(
-        KafkaAdmin().listTopics()
 
-    )
-}
 
 
 
