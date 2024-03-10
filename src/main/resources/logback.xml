@@ -1,12 +1,33 @@
+<!-- logback.xml -->
+
 <configuration>
+
+    <conversionRule conversionWord="colorStatus" converterClass="online.pasaka.infrastructure.logs.LogsFormatter" />
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>%d{YYYY-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+            <layout class="ch.qos.logback.classic.PatternLayout">
+
+                <Pattern>%d{HH:mm:ss.SSS} [%thread] %highlight(%-5level) %cyan(%logger{15}) - %msg%n</Pattern>
+
+            </layout>
         </encoder>
     </appender>
-    <root level="trace">
-        <appender-ref ref="STDOUT"/>
+
+    <!-- Set the log levels for specific packages -->
+    <logger name="k.application" level="INFO" />
+    <logger name="io.ktor.server.application" level="INFO" />
+    <logger name="io.ktor.server.engine" level="INFO" />
+    <logger name="io.ktor.server.netty" level="INFO" />
+
+
+    <logger name="org.mongodb.driver" level="INFO" />
+    <logger name="org.apache.kafka" level="INFO" />
+
+    <!-- Set the log levels for specific packages -->
+    <logger name="Coinx" level="INFO" />
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT" />
     </root>
-    <logger name="org.eclipse.jetty" level="INFO"/>
-    <logger name="io.netty" level="INFO"/>
+
 </configuration>

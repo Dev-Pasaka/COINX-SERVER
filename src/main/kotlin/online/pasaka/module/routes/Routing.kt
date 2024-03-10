@@ -11,6 +11,9 @@ import online.pasaka.module.resource.routes.crypto.cryptoPrice
 import online.pasaka.module.resource.routes.crypto.cryptoPrices
 import online.pasaka.module.resource.routes.cryptoAds.getCryptoAds
 import online.pasaka.module.resource.routes.cryptoAds.getCryptoAdsFullData
+import online.pasaka.module.resource.routes.passwordReset.resendOtp
+import online.pasaka.module.resource.routes.passwordReset.resetPassword
+import online.pasaka.module.resource.routes.passwordReset.sendOtp
 import online.pasaka.module.resource.serverSentEvents.liveOrderStatus
 
 fun Application.configureRouting() {
@@ -53,5 +56,8 @@ fun Application.configureRouting() {
         getMerchantData()
         getCryptoAdsFullData()
         getCryptoOrder()
+        sendOtp()
+        resendOtp()
+        resetPassword()
     }
 }

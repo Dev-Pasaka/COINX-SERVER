@@ -51,8 +51,6 @@ suspend fun buyOrderConsumer(
                     val buyOrderMessageObj = Json.decodeFromString(BuyOrderMessage.serializer(), buyOrderMessageJson)
                     val email = buyOrderMessageObj.buyersEmail
                     if (email.isNotBlank()){
-                        println(buyOrderMessageObj)
-                       println(
                           createBuyOrder(
                                buyOrder = BuyOrder(
                                    orderId = ObjectId().toString(),
@@ -66,7 +64,6 @@ suspend fun buyOrderConsumer(
                                    amountInKes = 0.0
                                )
                            )
-                       )
                     }else{
 
                     }

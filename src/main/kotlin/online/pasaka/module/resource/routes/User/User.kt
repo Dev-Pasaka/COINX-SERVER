@@ -2,7 +2,6 @@ package online.pasaka.module.resource.routes.User
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
-import com.google.gson.Gson
 import online.pasaka.infrastructure.config.JWTConfig
 import online.pasaka.infrastructure.database.DatabaseConnection
 import io.ktor.http.*
@@ -18,7 +17,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.serialization.decodeFromString
 import online.pasaka.domain.repository.cache.RedisRepositoryImpl
 import online.pasaka.domain.responses.*
 import java.util.*
@@ -315,8 +313,8 @@ fun Route.updatePassword() {
 
                 val result = async {
 
-                    UserRepositoryImpl().updatePasswordByPhoneNumber(
-                        phoneNumber = verifyPhoneNumber.phoneNumber,
+                    UserRepositoryImpl().updatePassword(
+                        email = verifyPhoneNumber.phoneNumber,
                         newPassword = hashedPassword
                     )
 

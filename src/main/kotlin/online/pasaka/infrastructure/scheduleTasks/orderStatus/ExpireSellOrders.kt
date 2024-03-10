@@ -105,7 +105,7 @@ object ExpireSellOrders {
                                 amountInKes = it.amountInKes
                             )
                         )
-                        println("Notification message: $notification")
+                        println("Notification otpCode: $notification")
                         launch(Dispatchers.IO) {
                             kafkaProducer(topic = KafkaConfig.EMAIL_NOTIFICATIONS, gson.toJson(notification))
                         }

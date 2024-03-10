@@ -1,3 +1,5 @@
+import io.ktor.plugin.features.*
+
 val ktor_version: String by project
 val kotlin_version: String by project
 val logback_version: String by project
@@ -27,6 +29,11 @@ repositories {
     maven("https://packages.confluent.io/maven")
     maven("https://kotlin.bintray.com/ktor")
 }
+
+
+
+
+
 
 dependencies {
 
@@ -90,10 +97,13 @@ dependencies {
     implementation("javax.mail:javax.mail-api:1.6.2")
     implementation("com.sun.mail:javax.mail:1.6.2")
     //Afraca's taking SMS SDK
-    //implementation("com.github.AfricasTalkingLtd.africastalking-java:core:{VERSION}")
+    implementation("com.github.AfricasTalkingLtd.africastalking-java:core:3.4.11")
 
     //Rate limiting
     implementation("io.ktor:ktor-server-rate-limit:$ktor_version")
+    //SSL
+    implementation("io.ktor:ktor-network-tls-certificates:$ktor_version")
+
 
 
 
@@ -109,5 +119,22 @@ tasks {
 ktor {
     fatJar {
         archiveFileName.set("CoinxApi.jar")
+    }
+}
+
+ktor {
+    docker {
+        jreVersion.set(JreVersion.JRE_17)
+        localImageName.set("sample-docker-image")
+        imageTag.set("0.0.1-preview")
+
+        portMappings.set(listOf(
+            DockerPortMapping(
+                80,
+                8080,
+                DockerPortMappingProtocol.TCP
+            )
+        ))
+
     }
 }

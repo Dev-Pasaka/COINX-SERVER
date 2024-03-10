@@ -13,10 +13,10 @@ suspend fun startTasksSchedulers() {
 
     val coroutineScope = CoroutineScope(customDispatcher)
 
-    coroutineScope.launch { ExpireBuyOrders.updateExpiredOrders() }
+   /* coroutineScope.launch { ExpireBuyOrders.updateExpiredOrders() }
     coroutineScope.launch { AutoReleaseBuyOrders.autoReleaseBuyOrders() }
     coroutineScope.launch { AutoReleaseSellOrders.autoReleaseSellOrders() }
-    coroutineScope.launch { ExpireSellOrders.updateExpiredSellOrders() }
+    coroutineScope.launch { ExpireSellOrders.updateExpiredSellOrders() }*/
 
 
 }

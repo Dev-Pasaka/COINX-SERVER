@@ -47,14 +47,11 @@ suspend fun EmailNotificationConsumer(
 
                 val records = consumer.poll(Duration.ofMillis(100))
                 for (record in records) {
-                    println(record.value())
                     val message = record.value().removePrefix("\"")
                         .removeSuffix("\"")
                         .replace("\\", "")
-                    println(message)
                     val gson = Gson()
                     val notificationMessage = gson.fromJson(message, Notification::class.java)
-                    println(notificationMessage)
                     when (notificationMessage.notificationType) {
                         /** Send buy order confirmation email */
                         NotificationType.BUY_ORDER_HAS_BEEN_PLACED ->{
@@ -100,7 +97,6 @@ suspend fun EmailNotificationConsumer(
 
                         /** Send buy order cancellation email*/
                         NotificationType.BUY_ORDER_CANCELLED ->{
-                        println(notificationMessage)
                         val result = notificationMessage.notificationMessage as? Map<String, Any> ?: emptyMap()
                             launch(Dispatchers.IO) {
                                 buyOrderEmail(
@@ -137,7 +133,6 @@ suspend fun EmailNotificationConsumer(
 
                         /** Send buy notify merchant via email that buyers has transferred the funds*/
                         NotificationType.BUYER_HAS_TRANSFERRED_FUNDS ->{
-                            println(notificationMessage)
                             val result = notificationMessage.notificationMessage as? Map<String, Any> ?: emptyMap()
                             launch(Dispatchers.IO) {
                                 buyOrderEmail(
@@ -155,7 +150,6 @@ suspend fun EmailNotificationConsumer(
 
                         /** Send sell order confirmation email */
                         NotificationType.SELL_ORDER_HAS_BEEN_PLACED ->{
-                            println(notificationMessage)
                             val result = notificationMessage.notificationMessage as? Map<String, Any> ?: emptyMap()
                             launch(Dispatchers.IO) {
                                 sellOrderEmail(
@@ -173,7 +167,6 @@ suspend fun EmailNotificationConsumer(
 
                         /** Send sell order confirmation email */
                         NotificationType.MERCHANT_HAS_TRANSFERRED_FUNDS ->{
-                            println(notificationMessage)
                             val result = notificationMessage.notificationMessage as? Map<String, Any> ?: emptyMap()
                             launch(Dispatchers.IO) {
                                 sellOrderEmail(
@@ -191,7 +184,6 @@ suspend fun EmailNotificationConsumer(
 
                         /** Send sell order cancellation notification to merchant */
                         NotificationType.SELL_ORDER_CANCELLED ->{
-                            println(notificationMessage)
                             val result = notificationMessage.notificationMessage as? Map<String, Any> ?: emptyMap()
                             launch(Dispatchers.IO) {
                                 sellOrderEmail(
@@ -209,7 +201,6 @@ suspend fun EmailNotificationConsumer(
 
                         /** Send sell order completion notification to merchant */
                         NotificationType.SELL_ORDER_COMPLETED ->{
-                            println(notificationMessage)
                             val result = notificationMessage.notificationMessage as? Map<String, Any> ?: emptyMap()
                             launch(Dispatchers.IO) {
                                 sellOrderEmail(
@@ -226,7 +217,6 @@ suspend fun EmailNotificationConsumer(
                         }
                         /** Send sell order completion notification to merchant */
                         NotificationType.SELL_ORDER_EXPIRED ->{
-                            println(notificationMessage)
                             val result = notificationMessage.notificationMessage as? Map<String, Any> ?: emptyMap()
                             launch(Dispatchers.IO) {
                                 sellOrderEmail(

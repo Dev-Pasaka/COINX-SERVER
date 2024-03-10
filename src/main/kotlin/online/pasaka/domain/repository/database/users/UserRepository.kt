@@ -13,6 +13,8 @@ interface UserRepository {
     suspend fun getUserData(email: String): User?
     suspend fun fetchUserCredentials(email: String): User?
     suspend fun checkIfPhoneExists(phoneNumber: String): User?
-    suspend fun updatePasswordByPhoneNumber(phoneNumber: String, newPassword: String): UpdateResult?
+    suspend fun updatePassword(phoneNumber: String, newPassword: String): UpdateResult?
     suspend fun liveUserPortfolio(email: String): LivePortfolio
+    suspend fun createOtpCode(email: String, otpCode:String):User?
+    suspend fun resetPassword(email: String, newPassword: String): Boolean
 }
